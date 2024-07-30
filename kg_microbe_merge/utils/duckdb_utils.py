@@ -86,7 +86,7 @@ def remove_duplicate_nodes(con, base_nodes_kg, subset_nodes_kg, final_kg):
 
 #ALTER TABLE base_kg RENAME TO final_kg;
     con.execute("""
-    ALTER TABLE '{base_nodes_kg}' RENAME TO '{final_kg}'
+    ALTER TABLE {base_nodes_kg} RENAME TO {final_kg}
     """)
 
     ###drop two input tables
@@ -96,7 +96,7 @@ def remove_duplicate_nodes(con, base_nodes_kg, subset_nodes_kg, final_kg):
     SELECT split_part(id, ':', 1) AS prefix, count(id) AS duplicates
     FROM (
         SELECT id, count(*) AS duplicate_count
-        FROM '{base_nodes_kg}'
+        FROM {base_nodes_kg}
         GROUP BY id
         HAVING duplicate_count > 1
     )
@@ -109,12 +109,12 @@ def remove_duplicate_nodes(con, base_nodes_kg, subset_nodes_kg, final_kg):
         SELECT *
         FROM (
             SELECT *,
-                -- Using a window function to assign a rank; rows with 'data/duckdb/merged' in source_table are given higher priority
+                -- Using a window function to assign a rank; rows from the base_nodes_kg are given higher priority
                 ROW_NUMBER() OVER (
                     PARTITION BY id
-                    ORDER BY CASE WHEN source_table = '{base_nodes_kg}' THEN 1 ELSE 2 END
+                    ORDER BY CASE WHEN source_table = {base_nodes_kg} THEN 1 ELSE 2 END
                 ) as rn
-            FROM '{final_kg}'
+            FROM {final_kg}
         ) sub
         WHERE sub.rn = 1;
         """)
