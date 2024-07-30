@@ -1,0 +1,20 @@
+{
+  "template": "https://github.com/Knowledge-Graph-Hub/kg-cookiecutter.git",
+  "commit": "8ff009dfa6541d3db18ac52c79de7288e33573e4",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "kg-microbe-merge",
+      "__project_slug": "kg_microbe_merge",
+      "project_description": "The repository merges k modularized knowledge graphs into multiple products.",
+      "min_python_version": "3.9",
+      "full_name": "Harshad Hegde",
+      "email": "hhegde@lbl.gov",
+      "__author": "Harshad Hegde <hhegde@lbl.gov>",
+      "license": "MIT",
+      "github_token_for_doc_deployment": "GH_TOKEN",
+      "_template": "https://github.com/Knowledge-Graph-Hub/kg-cookiecutter.git"
+    }
+  },
+  "directory": null
+}

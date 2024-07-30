@@ -1,0 +1,44 @@
+## This file is a list of things to be downloaded using the command:
+#   run.py download
+
+# To add a new item to be download, add a block like this - must have 'url',
+# 'local_name' is optional, use to avoid name collisions
+
+#  #
+#  # Description of source
+#  #
+#  -
+#    # brief comment about file, and optionally a local_name:
+#    url: http://curefordisease.org/some_data.txt
+#    local_name: some_data_more_chars_prevent_name_collision.pdf
+#
+#  For downloading from S3 buckets, see here for information about what URL to use:
+#  https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html#access-bucket-intro
+#  Amazon S3 virtual hosted style URLs follow the format shown below:
+#  https://bucket-name.s3.Region.amazonaws.com/key_name
+#
+---
+
+# **** Ontology files ****
+#
+# ENVO
+#
+-
+  url: http://purl.obolibrary.org/obo/envo.json
+  local_name: envo.json
+#
+# HP
+#
+-
+  url: http://purl.obolibrary.org/obo/hp.json
+  local_name: hp.json
+
+# **** Data sources ****
+#
+# KG-Microbe [BacDive]
+# - 
+#   url: https://github.com/Knowledge-Graph-Hub/kg-microbe/releases/download/2024-07-26-rc2/BacDive.tar.gz
+#   local_name: kg_microbe_2021-10-01.ttl
+
+# - 
+#   url: 

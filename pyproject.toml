@@ -1,0 +1,83 @@
+[tool.poetry]
+name = "kg-microbe-merge"
+version = "0.0.0"
+description = "kg-microbe-merge"
+authors = ["Harshad Hegde <hhegde@lbl.gov>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+click = ">=8.1.7"
+importlib-metadata = ">=8.2.0"
+kghub-downloader = ">=0.3.8"
+kgx = ">=2.4.2"
+koza = ">=0.6.0"
+biolink-model = ">=4.2.1"
+requests-cache = ">=1.2.1"
+sphinx = {version = "^7.4.7", extras = ["docs"], optional = true }
+sphinx-rtd-theme = {version = "^2.0.0", extras = ["docs"], optional = true }
+sphinx-autodoc-typehints = {version = "^2.2.3", extras = ["docs"], optional = true }
+sphinx-click = {version = "^6.0.0", extras = ["docs"], optional = true }
+myst-parser = {version = "^3.0.1", extras = ["docs"], optional = true }
+kg-chat = {version = ">=0.1.2", extras = ["chat"], optional = true }
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.3.1"
+tox = ">=4.16.0"
+pre-commit = ">=3.7.1"
+parameterized = ">=0.9.0"
+
+[tool.poetry.extras]
+docs = ["sphinx", "sphinx-rtd-theme", "sphinx-autodoc-typehints", "sphinx-click", "myst-parser"]
+chat = ["kg-chat"]
+
+[tool.poetry.scripts]
+kg = 'kg_microbe_merge.run:main'
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
+[tool.black]
+line-length = 100
+target-version = ["py38", "py39", "py310"]
+
+[tool.ruff]
+lint.extend-ignore = [
+    "D211",  # `no-blank-line-before-class`
+    "D212",  # `multi-line-summary-first-line`
+    ]
+line-length = 120
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+lint.fixable = ["ALL"]
+
+# Select or ignore from https://beta.ruff.rs/docs/rules/
+lint.select = [
+    "B",  # bugbear
+    "D",  # pydocstyle
+    "E",  # pycodestyle errors
+    "F",  # Pyflakes
+    "I",  # isort 
+    "S",  # flake8-bandit
+    "W",  # Warning
+]
+
+lint.unfixable = []
+target-version = "py310"
+
+[tool.ruff.lint.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.codespell]
+skip = "*.po,*.ts,.git,pyproject.toml"
+count = ""
+quiet-level = 3
+# ignore-words-list = ""
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
