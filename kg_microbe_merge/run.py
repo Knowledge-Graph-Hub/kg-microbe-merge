@@ -18,7 +18,7 @@ except ImportError:
     KnowledgeGraphChat = None
 
 from kg_microbe_merge import download as kg_download
-from kg_microbe_merge.merge_utils.merge_kg import load_and_merge
+from kg_microbe_merge.merge_utils.merge_kg import duckdb_merge, load_and_merge
 from kg_microbe_merge.query import parse_query_yaml, result_dict_to_tsv, run_query
 from kg_microbe_merge.transform import DATA_SOURCES
 from kg_microbe_merge.transform import transform as kg_transform
@@ -108,7 +108,9 @@ def merge(yaml: str, processes: int) -> None:
     :param processes: Number of processes to use.
     :return: None
     """
-    load_and_merge(yaml, processes)
+    #load_and_merge(yaml, processes)
+    #'/Users/brooksantangelo/Documents/Repositories/kg-chat/data/nodes.tsv'
+    duckdb_merge('/Users/brooksantangelo/Documents/LozuponeLab/FRMS_2024/duckdb/merged-kg_kg-microbe-base/merged-kg_nodes.tsv','/Users/brooksantangelo/Documents/Repositories/kg-microbe/data/transformed/uniprot_genome_features/nodes.tsv')
 
 
 @main.command()

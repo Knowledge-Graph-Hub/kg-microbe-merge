@@ -3,7 +3,10 @@ from typing import Dict
 
 import networkx as nx  # type: ignore
 import yaml
+from kg_microbe_merge.utils.duckdb_utils import duckdb_load_nodes, remove_duplicate_nodes, write_nodes
 from kgx.cli.cli_utils import merge  # type: ignore
+
+import duckdb
 
 
 def parse_load_config(yaml_file: str) -> Dict:
@@ -29,3 +32,16 @@ def load_and_merge(yaml_file: str, processes: int = 1) -> nx.MultiDiGraph:
     """
     merged_graph = merge(yaml_file, processes=processes)
     return merged_graph
+
+def duckdb_merge(base_nodes_kg_file, subset_nodes_kg_file):
+
+    # Connect to DuckDB
+    con = duckdb.connect()
+
+    duckdb_load_nodes(con, base_nodes_kg_file, subset_nodes_kg_file)
+
+    remove_duplicate_nodes(con)
+
+    write_nodes(con)
+
+
