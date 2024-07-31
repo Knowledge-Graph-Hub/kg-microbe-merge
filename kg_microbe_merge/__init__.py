@@ -2,7 +2,6 @@
 from importlib import metadata
 
 from .download import download
-from .transform_utils import transform
 
 try:
     __version__ = metadata.version(__name__)
