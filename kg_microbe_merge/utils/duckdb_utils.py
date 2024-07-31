@@ -28,7 +28,7 @@ def add_column(con, column_name, table_name, value):
     # Add new column to base file to specify kg type
     con.execute(
         f"""
-    ALTER TABLE {table_name} ADD COLUMN source_table VARCHAR(20);
+    ALTER TABLE {table_name} ADD COLUMN {column_name} VARCHAR(20);
     UPDATE {table_name}
     SET {column_name} = {value};
     """
@@ -121,8 +121,56 @@ def merge_kg_nodes_tables(con, columns, base_table_name, subset_table_name):
 
     return "merged_kg_nodes"
 
-# def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
+def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
+    """
+    De-duplicate and create merged table from the given base and subset graphs.
+    :param base_table_name: The name that will be used for the base table in duckdb.
+    :type base_table_name: Str
+    :param subset_table_name: The name that will be used for the subset table in duckdb.
+    :type subset_table_name: Str
+    :param columns: A list of columns in both the base and subset table.
+    :type columns: List
+    """
+    add_column(con, "source_table", base_table_name, base_table_name)
+    add_column(con, "source_table", subset_table_name, subset_table_name)
 
+    edges_columns_str = ", ".join(columns)
+    edges_columns_str = edges_columns_str + ", source_table"
+
+    # Insert data from the subset table into the base table
+    con.execute(
+        f"""
+    INSERT INTO {base_table_name} ({edges_columns_str})
+    SELECT {edges_columns_str}
+    FROM {subset_table_name};
+    ALTER TABLE {base_table_name} RENAME TO combined_kg_edges
+    """
+    )
+
+    get_table_count(con, "combined_kg_edges")
+
+    # Create merged graph table by prioritizing duplicate nodes from base table
+    con.execute(
+        f"""
+        CREATE OR REPLACE TABLE merged_kg_nodes AS
+        SELECT *
+        FROM (
+            SELECT *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY subject, object
+                    ORDER BY CASE WHEN source_table = '{base_table_name}' THEN 1 ELSE 2 END
+                ) as rn
+            FROM combined_kg_edges
+        ) sub
+        WHERE sub.rn = 1;
+        """
+    )
+
+    drop_table(con, subset_table_name)
+    drop_table(con, "combined_kg_edges")
+    get_table_count(con, "merged_kg_edges")
+
+    return "merged_kg_edges"
 
 def write_file(con, columns, filename, merge_kg_table_name):
     """
