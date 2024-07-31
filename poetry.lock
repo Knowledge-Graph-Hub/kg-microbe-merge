@@ -2,13 +2,13 @@
 
 [[package]]
 name = "aiohappyeyeballs"
-version = "2.3.3"
-description = "Happy Eyeballs"
+version = "2.3.4"
+description = "Happy Eyeballs for asyncio"
 optional = true
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "aiohappyeyeballs-2.3.3-py3-none-any.whl", hash = "sha256:757a844ed6f1346e7be671ef4fc49f157a68e947a3a9d82ff329777af93a6806"},
-    {file = "aiohappyeyeballs-2.3.3.tar.gz", hash = "sha256:42fa243b8180467fc1f6d16e227c8c731272707d033c873fe1b11a961f50d8fe"},
+    {file = "aiohappyeyeballs-2.3.4-py3-none-any.whl", hash = "sha256:40a16ceffcf1fc9e142fd488123b2e218abc4188cf12ac20c67200e1579baa42"},
+    {file = "aiohappyeyeballs-2.3.4.tar.gz", hash = "sha256:7e1ae8399c320a8adec76f6c919ed5ceae6edd4c3672f4d9eae2b27e37c80ff6"},
 ]
 
 [[package]]
@@ -2036,13 +2036,13 @@ pyvis = ">=0.3.2,<0.4.0"
 
 [[package]]
 name = "kghub-downloader"
-version = "0.3.8"
+version = "0.3.9"
 description = "Downloads and caches files for knowledge graph ETL"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "kghub_downloader-0.3.8-py3-none-any.whl", hash = "sha256:d8a2b6f9502d84caf700e8736f06cb82f0dfd0e06ab7ee1ee63f9e37acf90ed6"},
-    {file = "kghub_downloader-0.3.8.tar.gz", hash = "sha256:a77dd62b1a00ca0d5d6ea81dbe983c4293bb71e6a9c73c6174cb309a771fc9ce"},
+    {file = "kghub_downloader-0.3.9-py3-none-any.whl", hash = "sha256:d8edfc0e7d753e38b866bf9c71ed57c96eb1682d1f67d02b7a1932fe1de18841"},
+    {file = "kghub_downloader-0.3.9.tar.gz", hash = "sha256:a908fff07d46f88844d0608b5b31c3b9ae9aa64134d5943fc9545853dd2d1dae"},
 ]
 
 [package.dependencies]
@@ -2180,13 +2180,13 @@ tenacity = ">=8.1.0,<8.4.0 || >8.4.0,<9.0.0"
 
 [[package]]
 name = "langchain-core"
-version = "0.2.25"
+version = "0.2.26"
 description = "Building applications with LLMs through composability"
 optional = true
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langchain_core-0.2.25-py3-none-any.whl", hash = "sha256:03d61b2a7f4b5f98df248c1b1f0ccd95c9d5ef2269e174133724365cd2a7ee1e"},
-    {file = "langchain_core-0.2.25.tar.gz", hash = "sha256:e64106a7d0e37e4d35b767f79e6c62b56e825f08f9e8cc4368bcea9955257a7e"},
+    {file = "langchain_core-0.2.26-py3-none-any.whl", hash = "sha256:ab7bc58d8037349d06ad8c3eee2ea776e26af7f57cce330eecbed5b98e1c4d56"},
+    {file = "langchain_core-0.2.26.tar.gz", hash = "sha256:20c7792eb6c256dc50892d41f07f7fd8e12e5868dbb059fa316a278977bdf4f6"},
 ]
 
 [package.dependencies]
@@ -2199,6 +2199,7 @@ pydantic = [
 ]
 PyYAML = ">=5.3"
 tenacity = ">=8.1.0,<8.4.0 || >8.4.0,<9.0.0"
+typing-extensions = ">=4.7"
 
 [[package]]
 name = "langchain-openai"
@@ -5684,4 +5685,4 @@ docs = ["myst-parser", "sphinx", "sphinx-autodoc-typehints", "sphinx-click", "sp
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "f782f99b971df291d33639f755c80426f91bf8dc6b40eb3061c521d0c9fbdd3c"
+content-hash = "1169b6cdbbe38b10c38b0f798cdfda06d1b69932bd8f5c2e6abcfdd7e62317af"
