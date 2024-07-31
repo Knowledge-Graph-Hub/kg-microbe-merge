@@ -49,6 +49,7 @@ target-version = ["py38", "py39", "py310"]
 lint.extend-ignore = [
     "D211",  # `no-blank-line-before-class`
     "D212",  # `multi-line-summary-first-line`
+    "S608" , # Possible SQL injection vector through string-based query construction"
     ]
 line-length = 120
 
