@@ -42,6 +42,7 @@ def duckdb_prepare_tables(
 ):
     """
     Create duckDB tables for the given base and subset graphs.
+
     :param base_kg_file: The file path to the base kg nodes file.
     :type base_kg_file: Str
     :param subset_kg_file: The file path to the subset kg nodes file.
@@ -72,14 +73,17 @@ def duckdb_load_table(con, file, table_name, columns):
 
     get_table_count(con, table_name)
 
-def merge_kg_tables(con, columns: List[str], base_table_name: str, subset_table_name: str, table_type: str):
+
+def merge_kg_tables(
+    con, columns: List[str], base_table_name: str, subset_table_name: str, table_type: str
+):
     """
     De-duplicate and create merged table from the given base and subset graphs.
 
     # Example usage:
     # merged_nodes_table = merge_kg_tables(con, columns, base_table_name, subset_table_name, 'nodes')
     # merged_edges_table = merge_kg_tables(con, columns, base_table_name, subset_table_name, 'edges')
-    
+
     :param con: DuckDB connection object.
     :param columns: A list of columns in both the base and subset table.
     :param base_table_name: The name that will be used for the base table in duckdb.
@@ -106,17 +110,23 @@ def merge_kg_tables(con, columns: List[str], base_table_name: str, subset_table_
     get_table_count(con, f"combined_kg_{table_type}")
 
     # Ensure relevant columns are indexed
-    if table_type == 'nodes':
-        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_id ON combined_kg_nodes(id);")
-    elif table_type == 'edges':
-        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_subject ON combined_kg_edges(subject);")
-        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);")
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_{table_type}_source_table ON combined_kg_{table_type}(source_table);")
+    if table_type == "nodes":
+        con.execute("CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_id ON combined_kg_nodes(id);")
+    elif table_type == "edges":
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_subject ON combined_kg_edges(subject);"
+        )
+        con.execute(
+            "CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);"
+        )
+    con.execute(
+        f"CREATE INDEX IF NOT EXISTS idx_combined_kg_{table_type}_source_table ON combined_kg_{table_type}(source_table);"
+    )
 
     # Create merged graph table by prioritizing duplicate nodes/edges from base table using CTE
-    if table_type == 'nodes':
+    if table_type == "nodes":
         partition_by = "id"
-    elif table_type == 'edges':
+    elif table_type == "edges":
         partition_by = "subject, object"
 
     con.execute(
@@ -143,10 +153,10 @@ def merge_kg_tables(con, columns: List[str], base_table_name: str, subset_table_
     return f"merged_kg_{table_type}"
 
 
-
 def write_file(con, columns, filename, merge_kg_table_name):
     """
     Output tsv file for given merged graph.
+
     :param columns: A list of columns in both the base and subset table.
     :type columns: List
     :param filename: Name of the output tsv file.

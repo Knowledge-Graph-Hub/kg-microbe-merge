@@ -86,7 +86,15 @@ def download(*args, **kwargs) -> None:
 @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
 @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
 @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
-def merge(yaml: str, processes: int, merge_tool:str, base_nodes: str, base_edges: str, subset_nodes: str, subset_edges: str) -> None:
+def merge(
+    yaml: str,
+    processes: int,
+    merge_tool: str,
+    base_nodes: str,
+    base_edges: str,
+    subset_nodes: str,
+    subset_edges: str,
+) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
 

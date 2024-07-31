@@ -1,4 +1,5 @@
 """kg-microbe-merge package."""
+
 from importlib import metadata
 
 from .download import download

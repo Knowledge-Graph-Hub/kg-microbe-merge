@@ -77,5 +77,7 @@ def duckdb_merge(
         SUBSET_EDGES_TABLE_NAME,
         EDGES_COLUMNS,
     )
-    merge_kg_edges = merge_kg_tables(con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME, "edges")
+    merge_kg_edges = merge_kg_tables(
+        con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME, "edges"
+    )
     write_file(con, EDGES_COLUMNS, "merge_kg_edges.tsv", merge_kg_edges)
