@@ -3,9 +3,9 @@ name: KGMergeSchema
 description: A schema for the kg-merge configuration.
 prefixes:
   linkml: https://w3id.org/linkml/
-
 imports:
   - linkml:types
+default_range: string
 
 classes:
   Configuration:
@@ -13,7 +13,7 @@ classes:
     attributes:
       output_directory:
         description: Directory where the output will be stored.
-        range: string
+
       checkpoint:
         description: Whether to use checkpoints.
         range: boolean
@@ -23,7 +23,7 @@ classes:
     attributes:
       name:
         description: Name of the source.
-        range: string
+        
       input:
         description: Input details for the source.
         range: Input
@@ -33,22 +33,18 @@ classes:
     attributes:
       format:
         description: Format of the input file.
-        range: string
+        
       filename:
         description: List of filenames for the input files.
-        range: FilenameList
-
-  FilenameList:
-    description: List of filenames.
-    multivalued: true
-    range: string
+        multivalued: true
+    
 
   Operation:
     description: Operations to be performed on the graph.
     attributes:
       name:
         description: Name of the operation.
-        range: string
+        
       args:
         description: Arguments for the operation.
         range: Args
@@ -58,41 +54,37 @@ classes:
     attributes:
       graph_name:
         description: Name of the graph.
-        range: string
+        
       filename:
         description: Filename for the output.
-        range: string
+        
       node_facet_properties:
         description: Node facet properties.
-        range: FacetProperties
+        multivalued: true
       edge_facet_properties:
         description: Edge facet properties.
-        range: FacetProperties
-
-  FacetProperties:
-    description: List of facet properties.
-    multivalued: true
-    range: string
+        multivalued: true
+    
 
   Destination:
     description: Destination details for the merged graph.
     attributes:
       format:
         description: Format of the output file.
-        range: string
+        
       compression:
         description: Compression type for the output file.
-        range: string
+        
       filename:
         description: Filename for the output file.
-        range: string
+        
 
   MergedGraph:
     description: Details of the merged graph.
     attributes:
       name:
         description: Name of the merged graph.
-        range: string
+        
       source:
         description: Source graphs.
         range: Source
@@ -121,8 +113,3 @@ slots:
   edge_facet_properties:
   compression:
 
-# Root class
-root:
-  classes:
-    - Configuration
-    - MergedGraph
