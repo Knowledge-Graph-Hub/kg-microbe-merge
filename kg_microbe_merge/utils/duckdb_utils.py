@@ -90,29 +90,34 @@ def merge_kg_nodes_tables(con, columns, base_table_name, subset_table_name):
     # Insert data from the subset table into the base table
     con.execute(
         f"""
-    INSERT INTO {base_table_name} ({nodes_columns_str})
-    SELECT {nodes_columns_str}
-    FROM {subset_table_name};
-    ALTER TABLE {base_table_name} RENAME TO combined_kg_nodes
-    """
+        INSERT INTO {base_table_name} ({nodes_columns_str})
+        SELECT {nodes_columns_str}
+        FROM {subset_table_name};
+        ALTER TABLE {base_table_name} RENAME TO combined_kg_nodes;
+        """
     )
 
     get_table_count(con, "combined_kg_nodes")
 
-    # Create merged graph table by prioritizing duplicate nodes from base table
+    # Ensure relevant columns are indexed
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_id ON combined_kg_nodes(id);")
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_source_table ON combined_kg_nodes(source_table);")
+
+    # Create merged graph table by prioritizing duplicate nodes from base table using CTE
     con.execute(
         f"""
         CREATE OR REPLACE TABLE merged_kg_nodes AS
-        SELECT *
-        FROM (
+        WITH ranked_nodes AS (
             SELECT *,
                 ROW_NUMBER() OVER (
                     PARTITION BY id
                     ORDER BY CASE WHEN source_table = '{base_table_name}' THEN 1 ELSE 2 END
                 ) as rn
             FROM combined_kg_nodes
-        ) sub
-        WHERE sub.rn = 1;
+        )
+        SELECT *
+        FROM ranked_nodes
+        WHERE rn = 1;
         """
     )
 
@@ -137,34 +142,40 @@ def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
     add_column(con, "source_table", subset_table_name, subset_table_name)
 
     edges_columns_str = ", ".join(columns)
-    edges_columns_str = edges_columns_str + ", source_table"
+    edges_columns_str += ", source_table"
 
     # Insert data from the subset table into the base table
     con.execute(
         f"""
-    INSERT INTO {base_table_name} ({edges_columns_str})
-    SELECT {edges_columns_str}
-    FROM {subset_table_name};
-    ALTER TABLE {base_table_name} RENAME TO combined_kg_edges
-    """
+        INSERT INTO {base_table_name} ({edges_columns_str})
+        SELECT {edges_columns_str}
+        FROM {subset_table_name};
+        ALTER TABLE {base_table_name} RENAME TO combined_kg_edges;
+        """
     )
 
     get_table_count(con, "combined_kg_edges")
 
-    # Create merged graph table by prioritizing duplicate nodes from base table
+    # Ensure relevant columns are indexed
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_subject ON combined_kg_edges(subject);")
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);")
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_source_table ON combined_kg_edges(source_table);")
+
+    # Create merged graph table by prioritizing duplicate edges from base table using CTE
     con.execute(
         f"""
         CREATE OR REPLACE TABLE merged_kg_edges AS
-        SELECT *
-        FROM (
+        WITH ranked_edges AS (
             SELECT *,
                 ROW_NUMBER() OVER (
                     PARTITION BY subject, object
                     ORDER BY CASE WHEN source_table = '{base_table_name}' THEN 1 ELSE 2 END
                 ) as rn
             FROM combined_kg_edges
-        ) sub
-        WHERE sub.rn = 1;
+        )
+        SELECT *
+        FROM ranked_edges
+        WHERE rn = 1;
         """
     )
 
@@ -181,7 +192,7 @@ def write_file(con, columns, filename, merge_kg_table_name):
     :param columns: A list of columns in both the base and subset table.
     :type columns: List
     :param filename: Name of the output tsv file.
-    :type filename: Str
+    :type filename: str
     :param merge_kg_table_name: The name used for the merged table in duckdb.
     :type merge_kg_table_name: Str
     """
