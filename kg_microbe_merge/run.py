@@ -81,7 +81,12 @@ def download(*args, **kwargs) -> None:
 @main.command()
 @click.option("yaml", "-y", default="merge.yaml", type=click.Path(exists=True))
 @click.option("processes", "-p", default=1, type=int)
-def merge(yaml: str, processes: int) -> None:
+@click.option("merge_tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
+@click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
+@click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
+@click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
+@click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
+def merge(yaml: str, processes: int, merge_tool:str, base_nodes: str, base_edges: str, subset_nodes: str, subset_edges: str) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
 
@@ -89,17 +94,10 @@ def merge(yaml: str, processes: int) -> None:
     :param processes: Number of processes to use.
     :return: None
     """
-    load_and_merge(yaml, processes)
-
-
-@main.command()
-@click.option("base_nodes", "-base-n", type=click.Path(exists=True))
-@click.option("base_edges", "-base-e", type=click.Path(exists=True))
-@click.option("subset_nodes", "-subset-n", type=click.Path(exists=True))
-@click.option("subset_edges", "-subset-e", type=click.Path(exists=True))
-def merge_duckdb(base_nodes: str, base_edges: str, subset_nodes: str, subset_edges: str) -> None:
-
-    duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
+    if merge_tool == "duckdb":
+        duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
+    else:
+        load_and_merge(yaml, processes)
 
 
 @main.command()
@@ -193,7 +191,7 @@ def holdouts(*args, **kwargs) -> None:
 
     """
     # make_holdouts(*args, **kwargs)
-    pass
+    raise NotImplementedError("This function is not yet implemented.")
 
 
 if create_app:
