@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 
 def get_table_count(con, table):
@@ -71,119 +72,76 @@ def duckdb_load_table(con, file, table_name, columns):
 
     get_table_count(con, table_name)
 
-def merge_kg_nodes_tables(con, columns, base_table_name, subset_table_name):
+def merge_kg_tables(con, columns: List[str], base_table_name: str, subset_table_name: str, table_type: str):
     """
     De-duplicate and create merged table from the given base and subset graphs.
-    :param base_table_name: The name that will be used for the base table in duckdb.
-    :type base_table_name: Str
-    :param subset_table_name: The name that will be used for the subset table in duckdb.
-    :type subset_table_name: Str
+
+    # Example usage:
+    # merged_nodes_table = merge_kg_tables(con, columns, base_table_name, subset_table_name, 'nodes')
+    # merged_edges_table = merge_kg_tables(con, columns, base_table_name, subset_table_name, 'edges')
+    
+    :param con: DuckDB connection object.
     :param columns: A list of columns in both the base and subset table.
-    :type columns: List
+    :param base_table_name: The name that will be used for the base table in duckdb.
+    :param subset_table_name: The name that will be used for the subset table in duckdb.
+    :param table_type: Type of table ('nodes' or 'edges') to determine specific handling.
+
+    :return: Name of the merged table.
     """
     add_column(con, "source_table", base_table_name, base_table_name)
     add_column(con, "source_table", subset_table_name, subset_table_name)
 
-    nodes_columns_str = ", ".join(columns)
-    nodes_columns_str = nodes_columns_str + ", source_table"
+    columns_str = ", ".join(columns) + ", source_table"
 
     # Insert data from the subset table into the base table
     con.execute(
         f"""
-        INSERT INTO {base_table_name} ({nodes_columns_str})
-        SELECT {nodes_columns_str}
+        INSERT INTO {base_table_name} ({columns_str})
+        SELECT {columns_str}
         FROM {subset_table_name};
-        ALTER TABLE {base_table_name} RENAME TO combined_kg_nodes;
+        ALTER TABLE {base_table_name} RENAME TO combined_kg_{table_type};
         """
     )
 
-    get_table_count(con, "combined_kg_nodes")
+    get_table_count(con, f"combined_kg_{table_type}")
 
     # Ensure relevant columns are indexed
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_id ON combined_kg_nodes(id);")
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_source_table ON combined_kg_nodes(source_table);")
+    if table_type == 'nodes':
+        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_nodes_id ON combined_kg_nodes(id);")
+    elif table_type == 'edges':
+        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_subject ON combined_kg_edges(subject);")
+        con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);")
+    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_{table_type}_source_table ON combined_kg_{table_type}(source_table);")
 
-    # Create merged graph table by prioritizing duplicate nodes from base table using CTE
+    # Create merged graph table by prioritizing duplicate nodes/edges from base table using CTE
+    if table_type == 'nodes':
+        partition_by = "id"
+    elif table_type == 'edges':
+        partition_by = "subject, object"
+
     con.execute(
         f"""
-        CREATE OR REPLACE TABLE merged_kg_nodes AS
-        WITH ranked_nodes AS (
+        CREATE OR REPLACE TABLE merged_kg_{table_type} AS
+        WITH ranked_{table_type} AS (
             SELECT *,
                 ROW_NUMBER() OVER (
-                    PARTITION BY id
+                    PARTITION BY {partition_by}
                     ORDER BY CASE WHEN source_table = '{base_table_name}' THEN 1 ELSE 2 END
                 ) as rn
-            FROM combined_kg_nodes
+            FROM combined_kg_{table_type}
         )
         SELECT *
-        FROM ranked_nodes
+        FROM ranked_{table_type}
         WHERE rn = 1;
         """
     )
 
     drop_table(con, subset_table_name)
-    drop_table(con, "combined_kg_nodes")
-    get_table_count(con, "merged_kg_nodes")
+    drop_table(con, f"combined_kg_{table_type}")
+    get_table_count(con, f"merged_kg_{table_type}")
 
-    return "merged_kg_nodes"
+    return f"merged_kg_{table_type}"
 
-
-def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
-    """
-    De-duplicate and create merged table from the given base and subset graphs.
-    :param base_table_name: The name that will be used for the base table in duckdb.
-    :type base_table_name: Str
-    :param subset_table_name: The name that will be used for the subset table in duckdb.
-    :type subset_table_name: Str
-    :param columns: A list of columns in both the base and subset table.
-    :type columns: List
-    """
-    add_column(con, "source_table", base_table_name, base_table_name)
-    add_column(con, "source_table", subset_table_name, subset_table_name)
-
-    edges_columns_str = ", ".join(columns)
-    edges_columns_str += ", source_table"
-
-    # Insert data from the subset table into the base table
-    con.execute(
-        f"""
-        INSERT INTO {base_table_name} ({edges_columns_str})
-        SELECT {edges_columns_str}
-        FROM {subset_table_name};
-        ALTER TABLE {base_table_name} RENAME TO combined_kg_edges;
-        """
-    )
-
-    get_table_count(con, "combined_kg_edges")
-
-    # Ensure relevant columns are indexed
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_subject ON combined_kg_edges(subject);")
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);")
-    con.execute(f"CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_source_table ON combined_kg_edges(source_table);")
-
-    # Create merged graph table by prioritizing duplicate edges from base table using CTE
-    con.execute(
-        f"""
-        CREATE OR REPLACE TABLE merged_kg_edges AS
-        WITH ranked_edges AS (
-            SELECT *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY subject, object
-                    ORDER BY CASE WHEN source_table = '{base_table_name}' THEN 1 ELSE 2 END
-                ) as rn
-            FROM combined_kg_edges
-        )
-        SELECT *
-        FROM ranked_edges
-        WHERE rn = 1;
-        """
-    )
-
-    drop_table(con, subset_table_name)
-    drop_table(con, "combined_kg_edges")
-    get_table_count(con, "merged_kg_edges")
-
-    return "merged_kg_edges"
 
 
 def write_file(con, columns, filename, merge_kg_table_name):

@@ -17,8 +17,7 @@ from kg_microbe_merge.merge_utils.constants import (
 )
 from kg_microbe_merge.utils.duckdb_utils import (
     duckdb_prepare_tables,
-    merge_kg_edges_tables,
-    merge_kg_nodes_tables,
+    merge_kg_tables,
     write_file,
 )
 
@@ -64,8 +63,8 @@ def duckdb_merge(
         SUBSET_NODES_TABLE_NAME,
         NODES_COLUMNS,
     )
-    merge_kg_nodes = merge_kg_nodes_tables(
-        con, NODES_COLUMNS, BASE_NODES_TABLE_NAME, SUBSET_NODES_TABLE_NAME
+    merge_kg_nodes = merge_kg_tables(
+        con, NODES_COLUMNS, BASE_NODES_TABLE_NAME, SUBSET_NODES_TABLE_NAME, "nodes"
     )
     write_file(con, NODES_COLUMNS, "merge_kg_nodes.tsv", merge_kg_nodes)
 
@@ -78,5 +77,5 @@ def duckdb_merge(
         SUBSET_EDGES_TABLE_NAME,
         EDGES_COLUMNS,
     )
-    merge_kg_edges = merge_kg_edges_tables(con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME)
+    merge_kg_edges = merge_kg_tables(con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME, "edges")
     write_file(con, EDGES_COLUMNS, "merge_kg_edges.tsv", merge_kg_edges)
