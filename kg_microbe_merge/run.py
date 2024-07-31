@@ -21,8 +21,6 @@ except ImportError:
 from kg_microbe_merge import download as kg_download
 from kg_microbe_merge.merge_utils.merge_kg import duckdb_merge, load_and_merge
 from kg_microbe_merge.query import parse_query_yaml, result_dict_to_tsv, run_query
-from kg_microbe_merge.transform import DATA_SOURCES
-from kg_microbe_merge.transform import transform as kg_transform
 
 database_options = click.option(
     "--database",
@@ -76,25 +74,6 @@ def download(*args, **kwargs) -> None:
     :return: None
     """
     kg_download(*args, **kwargs)
-
-    return None
-
-
-@main.command()
-@click.option("input_dir", "-i", default="data/raw", type=click.Path(exists=True))
-@click.option("output_dir", "-o", default="data/transformed")
-@click.option("sources", "-s", default=None, multiple=True, type=click.Choice(DATA_SOURCES.keys()))
-def transform(*args, **kwargs) -> None:
-    """
-    Call project_name/transform/[source name]/ for node & edge transforms.
-
-    :param input_dir: A string pointing to the directory to import data from.
-    :param output_dir: A string pointing to the directory to output data to.
-    :param sources: A list of sources to transform.
-    :return: None
-    """
-    # call transform script for each source
-    kg_transform(*args, **kwargs)
 
     return None
 
