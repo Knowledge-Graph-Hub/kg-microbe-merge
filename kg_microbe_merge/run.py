@@ -6,6 +6,7 @@ from pprint import pprint
 from typing import Union
 
 import click
+
 try:
     from kg_chat.app import create_app
     from kg_chat.implementations import DuckDBImplementation, Neo4jImplementation
@@ -36,6 +37,7 @@ data_dir_option = click.option(
     help="Directory containing the data.",
     required=True,
 )
+
 
 @click.group()
 def main():
@@ -108,10 +110,21 @@ def merge(yaml: str, processes: int) -> None:
     :param processes: Number of processes to use.
     :return: None
     """
-    #load_and_merge(yaml, processes)
-    #'/Users/brooksantangelo/Documents/Repositories/kg-chat/data/nodes.tsv'
-    duckdb_merge('/Users/brooksantangelo/Documents/LozuponeLab/FRMS_2024/duckdb/merged-kg_kg-microbe-base/merged-kg_nodes.tsv','/Users/brooksantangelo/Documents/Repositories/kg-microbe/data/transformed/uniprot_genome_features/nodes.tsv')
-
+    load_and_merge(yaml, processes)
+    
+@main.command()
+@click.option("base_nodes", "-base-n", type=click.Path(exists=True))
+@click.option("base_edges", "-base-e", type=click.Path(exists=True))
+@click.option("subset_nodes", "-subset-n", type=click.Path(exists=True))
+@click.option("subset_edges", "-subset-e", type=click.Path(exists=True))
+def merge_duckdb(yaml: str, processes: int) -> None: 
+ 
+    duckdb_merge(
+        "base_nodes",
+        # "base_edges",
+        "subset_nodes",
+        # "subset_edges"
+    )
 
 @main.command()
 @click.option("yaml", "-y", required=True, default=None, multiple=False)
@@ -206,16 +219,19 @@ def holdouts(*args, **kwargs) -> None:
     # make_holdouts(*args, **kwargs)
     pass
 
+
 if create_app:
     # ! kg-chat must be installed for these CLI commands to work.
-    
+
     @main.command("import")
     @database_options
     @data_dir_option
     def import_kg_click(database: str = "duckdb", data_dir: str = None):
         """Run the kg-chat's demo command."""
         if not data_dir:
-            raise ValueError("Data directory is required. This typically contains the KGX tsv files.")
+            raise ValueError(
+                "Data directory is required. This typically contains the KGX tsv files."
+            )
         if database == "neo4j":
             impl = Neo4jImplementation(data_dir=data_dir)
             impl.load_kg()
@@ -273,7 +289,7 @@ if create_app:
             kgc = KnowledgeGraphChat(impl)
         else:
             raise ValueError(f"Database {database} not supported.")
-        
+
         app = create_app(kgc)
         # use_reloader=False to avoid running the app twice in debug mode
         app.run(debug=debug, use_reloader=False)

@@ -1,12 +1,25 @@
 """Merging module."""
+
 from typing import Dict
 
+import duckdb
 import networkx as nx  # type: ignore
 import yaml
-from kg_microbe_merge.utils.duckdb_utils import duckdb_load_nodes, remove_duplicate_nodes, write_nodes
 from kgx.cli.cli_utils import merge  # type: ignore
 
-import duckdb
+from kg_microbe_merge.merge_utils.constants import (
+    BASE_EDGES_TABLE_NAME,
+    BASE_NODES_TABLE_NAME,
+    EDGES_COLUMNS,
+    NODES_COLUMNS,
+    SUBSET_EDGES_TABLE_NAME,
+    SUBSET_NODES_TABLE_NAME,
+)
+from kg_microbe_merge.utils.duckdb_utils import (
+    duckdb_prepare_tables,
+    merge_kg_nodes_tables,
+    write_file,
+)
 
 
 def parse_load_config(yaml_file: str) -> Dict:
@@ -33,15 +46,26 @@ def load_and_merge(yaml_file: str, processes: int = 1) -> nx.MultiDiGraph:
     merged_graph = merge(yaml_file, processes=processes)
     return merged_graph
 
-def duckdb_merge(base_nodes_kg_file, subset_nodes_kg_file):
+
+def duckdb_merge(base_kg_nodes_file, subset_kg_nodes_file):
 
     # Connect to DuckDB
     con = duckdb.connect()
 
-    duckdb_load_nodes(con, base_nodes_kg_file, subset_nodes_kg_file)
+    # duckdb_load_nodes(con, base_nodes_kg_file, subset_nodes_kg_file)
+    # Merge nodes
+    duckdb_prepare_tables(
+        con,
+        base_kg_nodes_file,
+        subset_kg_nodes_file,
+        BASE_NODES_TABLE_NAME,
+        SUBSET_NODES_TABLE_NAME,
+        NODES_COLUMNS,
+    )
+    merge_kg_nodes = merge_kg_nodes_tables(con, NODES_COLUMNS, BASE_NODES_TABLE_NAME, SUBSET_NODES_TABLE_NAME)
+    write_file(con, NODES_COLUMNS, "merge_kg_nodes.tsv", merge_kg_nodes)
 
-    remove_duplicate_nodes(con)
-
-    write_nodes(con)
-
-
+    # Merge edges
+    # duckdb_prepare_tables(con, base_kg_edges_file, subset_kg_edges_file, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME)
+    # merge_kg_nodes_tables(con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME)
+    # write_file(con, EDGES_COLUMNS, "merge_kg_edges.tsv")
