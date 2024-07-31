@@ -1,4 +1,4 @@
-"""Constants for merge_utilitiews."""
+"""Constants for merge_utilities."""
 
 BASE_NODES_TABLE_NAME = "base_kg_nodes"
 SUBSET_NODES_TABLE_NAME = "subset_kg_nodes"
