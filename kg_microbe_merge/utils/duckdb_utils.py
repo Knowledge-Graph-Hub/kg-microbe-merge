@@ -1,5 +1,6 @@
 import os
 
+
 def get_table_count(con, table):
     """Get the number of rows of a given duckdb table name."""
     # Execute the SQL query to count the rows
@@ -121,6 +122,7 @@ def merge_kg_nodes_tables(con, columns, base_table_name, subset_table_name):
 
     return "merged_kg_nodes"
 
+
 def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
     """
     De-duplicate and create merged table from the given base and subset graphs.
@@ -152,7 +154,7 @@ def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
     # Create merged graph table by prioritizing duplicate nodes from base table
     con.execute(
         f"""
-        CREATE OR REPLACE TABLE merged_kg_nodes AS
+        CREATE OR REPLACE TABLE merged_kg_edges AS
         SELECT *
         FROM (
             SELECT *,
@@ -171,6 +173,7 @@ def merge_kg_edges_tables(con, columns, base_table_name, subset_table_name):
     get_table_count(con, "merged_kg_edges")
 
     return "merged_kg_edges"
+
 
 def write_file(con, columns, filename, merge_kg_table_name):
     """

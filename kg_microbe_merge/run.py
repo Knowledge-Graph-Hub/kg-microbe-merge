@@ -90,20 +90,17 @@ def merge(yaml: str, processes: int) -> None:
     :return: None
     """
     load_and_merge(yaml, processes)
-    
+
+
 @main.command()
 @click.option("base_nodes", "-base-n", type=click.Path(exists=True))
 @click.option("base_edges", "-base-e", type=click.Path(exists=True))
 @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True))
 @click.option("subset_edges", "-subset-e", type=click.Path(exists=True))
-def merge_duckdb(yaml: str, processes: int) -> None: 
- 
-    duckdb_merge(
-        "base_nodes",
-        # "base_edges",
-        "subset_nodes",
-        # "subset_edges"
-    )
+def merge_duckdb(base_nodes: str, base_edges: str, subset_nodes: str, subset_edges: str) -> None:
+
+    duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
+
 
 @main.command()
 @click.option("yaml", "-y", required=True, default=None, multiple=False)
