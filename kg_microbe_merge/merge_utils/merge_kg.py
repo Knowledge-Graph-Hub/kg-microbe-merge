@@ -63,10 +63,11 @@ def duckdb_merge(
         SUBSET_NODES_TABLE_NAME,
         NODES_COLUMNS,
     )
-    merge_kg_nodes = merge_kg_tables(
+    merge_kg_nodes,duplicate_nodes = merge_kg_tables(
         con, NODES_COLUMNS, BASE_NODES_TABLE_NAME, SUBSET_NODES_TABLE_NAME, "nodes"
     )
     write_file(con, NODES_COLUMNS, "merge_kg_nodes.tsv", merge_kg_nodes)
+    write_file(con, NODES_COLUMNS, "duplicate_kg_nodes.tsv", duplicate_nodes)
 
     # Merge edges
     duckdb_prepare_tables(
@@ -77,7 +78,8 @@ def duckdb_merge(
         SUBSET_EDGES_TABLE_NAME,
         EDGES_COLUMNS,
     )
-    merge_kg_edges = merge_kg_tables(
+    merge_kg_edges, duplicate_edges = merge_kg_tables(
         con, EDGES_COLUMNS, BASE_EDGES_TABLE_NAME, SUBSET_EDGES_TABLE_NAME, "edges"
     )
     write_file(con, EDGES_COLUMNS, "merge_kg_edges.tsv", merge_kg_edges)
+    write_file(con, EDGES_COLUMNS, "duplicate_kg_edges.tsv", duplicate_edges)

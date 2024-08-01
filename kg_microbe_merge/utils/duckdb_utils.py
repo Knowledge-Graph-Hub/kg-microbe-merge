@@ -127,11 +127,41 @@ def merge_kg_tables(
     if table_type == "nodes":
         partition_by = "id"
     elif table_type == "edges":
-        partition_by = "subject, object"
+        partition_by = "subject, predicate, object"
+
+    get_table_duplicates(con, "merged_kg", table_type, partition_by, base_table_name)
+    get_table_duplicates(con, "duplicate", table_type, partition_by, base_table_name)
+
+    drop_table(con, subset_table_name)
+    drop_table(con, f"combined_kg_{table_type}")
+    get_table_count(con, f"merged_kg_{table_type}")
+    get_table_count(con, f"duplicate_{table_type}")
+
+    return f"merged_kg_{table_type}", f"duplicate_{table_type}"
+
+def get_table_duplicates(con, table_name, table_type, partition_by, base_table_name):
+    """
+    Get duplicates of rows in a given table
+    Creates table of both unique or duplicate values.
+
+    # Example usage:
+    # get_table_duplicates(con, "merged_kg", table_type, partition_by, base_table_name)
+    # get_table_duplicates(con, "duplicate", table_type, partition_by, base_table_name)
+
+    :param con: DuckDB connection object.
+    :param table_name: Type of table ('merged_kg' or 'duplicate') to determine specific handling.
+    :param table_type: Type of table ('nodes' or 'edges') to determine specific handling.
+    :param partition_by: The columns that will be compared for finding duplicates.
+    :param base_table_name: The name that will be used for the base table in duckdb.
+    """
+    if table_name == "merged_kg":
+        condition = "rn = 1"
+    elif table_name == "duplicate":
+        condition = "rn > 1"
 
     con.execute(
         f"""
-        CREATE OR REPLACE TABLE merged_kg_{table_type} AS
+        CREATE OR REPLACE TABLE {table_name}_{table_type} AS
         WITH ranked_{table_type} AS (
             SELECT *,
                 ROW_NUMBER() OVER (
@@ -142,18 +172,12 @@ def merge_kg_tables(
         )
         SELECT *
         FROM ranked_{table_type}
-        WHERE rn = 1;
+        WHERE {condition};
         """
     )
 
-    drop_table(con, subset_table_name)
-    drop_table(con, f"combined_kg_{table_type}")
-    get_table_count(con, f"merged_kg_{table_type}")
 
-    return f"merged_kg_{table_type}"
-
-
-def write_file(con, columns, filename, merge_kg_table_name):
+def write_file(con, columns, filename, table_name):
     """
     Output tsv file for given merged graph.
 
@@ -161,8 +185,8 @@ def write_file(con, columns, filename, merge_kg_table_name):
     :type columns: List
     :param filename: Name of the output tsv file.
     :type filename: str
-    :param merge_kg_table_name: The name used for the merged table in duckdb.
-    :type merge_kg_table_name: Str
+    :param table_name: The name used for the merged table in duckdb.
+    :type table_name: Str
     """
     columns_str = ", ".join(columns)
 
@@ -172,7 +196,7 @@ def write_file(con, columns, filename, merge_kg_table_name):
         f"""
     COPY (
         SELECT {columns_str}
-        FROM {merge_kg_table_name}
+        FROM {table_name}
     ) TO '{output_filename}' WITH (FORMAT 'csv', DELIMITER '\t', HEADER true);
     """
     )
