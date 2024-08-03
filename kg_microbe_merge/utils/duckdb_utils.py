@@ -1,5 +1,9 @@
+"""Utility functions for working with DuckDB in the KG Microbe Merge project."""
+
 import os
 from typing import List
+
+import duckdb
 
 
 def get_table_count(con, table):
@@ -120,7 +124,8 @@ def merge_kg_tables(
             "CREATE INDEX IF NOT EXISTS idx_combined_kg_edges_object ON combined_kg_edges(object);"
         )
     con.execute(
-        f"CREATE INDEX IF NOT EXISTS idx_combined_kg_{table_type}_source_table ON combined_kg_{table_type}(source_table);"
+        f"""CREATE INDEX IF NOT EXISTS idx_combined_kg_{table_type}_source_table
+            ON combined_kg_{table_type}(source_table);"""
     )
 
     # Create merged graph table by prioritizing duplicate nodes/edges from base table using CTE
@@ -139,9 +144,11 @@ def merge_kg_tables(
 
     return f"merged_kg_{table_type}", f"duplicate_{table_type}"
 
+
 def get_table_duplicates(con, table_name, table_type, partition_by, base_table_name):
     """
-    Get duplicates of rows in a given table
+    Get duplicates of rows in a given table.
+
     Creates table of both unique or duplicate values.
 
     # Example usage:
@@ -200,3 +207,217 @@ def write_file(con, columns, filename, table_name):
     ) TO '{output_filename}' WITH (FORMAT 'csv', DELIMITER '\t', HEADER true);
     """
     )
+
+
+# * Revised code below
+def load_into_duckdb(conn, file_list, table_name, exclude_columns=None):
+    """
+    Load multiple files into a single DuckDB table.
+
+    :param conn: DuckDB connection object.
+    :param file_list: List of file paths to load.
+    :param table_name: Name of the table to create.
+    :param exclude_columns: List of columns to exclude from the table.
+    """
+    if exclude_columns is None:
+        exclude_columns = []
+
+    # Read the structure of the first file to get column names
+    first_file = file_list[0]
+    columns_query = f"SELECT * FROM read_csv_auto('{first_file}', header=true, sep='\t') LIMIT 0"
+    columns = conn.execute(columns_query).df().columns.tolist()
+
+    # Filter out excluded columns
+    columns = [col for col in columns if col not in exclude_columns]
+    columns_str = ", ".join(columns)
+
+    union_queries = [
+        f"SELECT {columns_str} FROM read_csv_auto('{file}', header=true, sep='\t')"
+        for file in file_list
+    ]
+    union_all_query = " UNION ALL ".join(union_queries)
+    conn.execute(f"CREATE OR REPLACE TABLE {table_name} AS ({union_all_query})")
+    print(f"Loaded {len(file_list)} files into table '{table_name}'")
+
+
+def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources):
+    """
+    Merge nodes files using DuckDB.
+
+    :param nodes_file_list: List of paths to nodes files.
+    :param output_file: Path to the output file.
+    :param priority_sources: List of source names to prioritize.
+    """
+    # Create a DuckDB connection
+    conn = duckdb.connect(":memory:")
+
+    # Load the files into DuckDB
+    load_into_duckdb(conn, nodes_file_list, "combined_nodes")
+
+    priority_sources_str = ", ".join(f"''{source}''" for source in priority_sources)
+
+    # * Construct the query to merge the nodes
+
+    # * This query performs the following operations:
+    # * 1. WITH columns AS (...):
+    # *    - Retrieves all column names from the 'combined_nodes' table.
+
+    # * 2. WITH agg_columns AS (...):
+    # *    - Generates aggregation expressions for each column:
+    # *      a. For 'id': Keep as is (used for grouping)
+    # *      b. For 'name':
+    # *         - If any row for this id has 'provided_by' matching any value in the priority_sources list,
+    # *           select the 'name' from that row.
+    # *         - Otherwise, select the first 'name' encountered.
+    # *      c. For all other columns:
+    # *         - Concatenate all distinct values with '|' as separator.
+
+    # * 3. SELECT 'SELECT ' || string_agg(...):
+    # *    - Constructs the final SELECT statement dynamically:
+    # *      a. Combines all aggregation expressions into a single SELECT statement.
+    # *      b. Adds GROUP BY id to group all rows with the same id.
+    # *      c. Adds ORDER BY id to sort the final output.
+
+    # * The resulting query will:
+    # * - Combine all rows with the same 'id'
+    # * - Prioritize 'name' from rows where 'provided_by' matches any value in priority_sources
+    # * - Merge all other columns by concatenating distinct values
+    # * - Sort the output by 'id'
+
+    try:
+        # Construct the query to merge the nodes
+        query = f"""
+        WITH columns AS (
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_nodes'
+        ),
+        agg_columns AS (
+            SELECT
+                CASE
+                    WHEN column_name = 'id' THEN 'id'
+                    WHEN column_name = 'name' THEN
+                        'COALESCE(MAX(CASE WHEN provided_by IN ({priority_sources_str}) THEN ' || column_name || ' END),
+                          ' || 'MAX(' || column_name || ')) AS ' || column_name
+                    ELSE 'STRING_AGG(DISTINCT ' || column_name || ', ''|'' ORDER BY ' || column_name || ')
+                    AS ' || column_name
+                END AS agg_expr
+            FROM columns
+        )
+        SELECT
+            'SELECT ' || STRING_AGG(agg_expr, ', ') ||
+            ' FROM combined_nodes GROUP BY id ORDER BY id' AS final_query
+        FROM agg_columns
+        """
+
+        # Execute the query to get the final query string
+        final_query = conn.execute(query).fetchone()[0]
+
+        # Print the generated SQL for debugging
+        print("Generated SQL query:")
+        print(final_query)
+
+        # Execute the final query and save the result
+        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+
+        print(f"Merged file has been created as '{output_file}'")
+    except duckdb.Error as e:
+        print(f"An error occurred: {e}")
+        print("Generated query was:")
+        print(query)
+    finally:
+        # Close the connection
+        conn.close()
+
+
+def duckdb_edges_merge(edges_file_list, output_file):
+    """
+    Merge edges files using DuckDB.
+
+    :param edges_file_list: List of paths to edges files.
+    :param output_file: Path to the output file.
+    """
+    # Create a DuckDB connection
+    conn = duckdb.connect(":memory:")
+
+    # Load the files into DuckDB, excluding the 'id' column
+    load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
+
+    # * This SQL query dynamically generates a SELECT statement to merge and deduplicate rows
+    # * from a table named 'combined_edges'.
+    # * Here's a breakdown of its components:
+    # *
+    # * 1. The 'columns' CTE (Common Table Expression):
+    # *    - Retrieves all column names from the 'combined_edges' table using the information_schema.
+    # *    - This allows the query to adapt to any column structure in the 'combined_edges' table.
+    # *
+    # * 2. The 'agg_columns' CTE:
+    # *    - Processes each column from the 'columns' CTE to determine how it should be
+    # *      handled in the final SELECT statement.
+    # *    - For 'subject', 'predicate', and 'object' columns:
+    # *      * These are treated as is, likely serving as unique identifiers for each edge.
+    # *    - For all other columns:
+    # *      * A string_agg function is applied to concatenate all distinct values with a '|' delimiter.
+    # *      * This effectively combines multiple rows with the same subject, predicate, and object into a single row,
+    # *        while preserving all unique values for other attributes.
+    # *
+    # * 3. The main SELECT statement:
+    # *    - Constructs the final SELECT query as a string:
+    # *      * It starts with 'SELECT '.
+    # *      * Then it aggregates all the expressions from 'agg_columns' using string_agg, separating them with commas.
+    # *      * It adds ' FROM combined_edges GROUP BY subject, predicate, object ORDER BY subject, predicate, object'
+    # *        to the end of the query.
+    # *    - The GROUP BY clause ensures that edges with the same subject, predicate, and object are combined.
+    # *    - The ORDER BY clause sorts the results for consistency.
+    # *
+    # * This dynamically generated query, when executed, will:
+    # * 1. Select all columns from 'combined_edges'.
+    # * 2. Combine rows with identical subject, predicate, and object.
+    # * 3. For non-key columns, it will aggregate distinct values with '|' as a separator.
+    # * 4. Sort the results by subject, predicate, and object.
+    # *
+    # * This approach allows for flexible deduplication and merging of edge data,
+    # *   regardless of the specific column structure of the 'combined_edges' table.
+
+    try:
+        # Construct the query to merge the edges
+        query = """
+        WITH columns AS (
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_edges'
+        ),
+        agg_columns AS (
+            SELECT
+                CASE
+                    WHEN column_name IN ('subject', 'predicate', 'object') THEN column_name
+                    ELSE 'string_agg(DISTINCT ' || column_name || ', ''|'' ORDER BY ' || column_name || ')
+                      AS ' || column_name
+                END AS agg_expr
+            FROM columns
+        )
+        SELECT
+            'SELECT ' || string_agg(agg_expr, ', ') ||
+            ' FROM combined_edges GROUP BY subject, predicate,
+              object ORDER BY subject, predicate, object' AS final_query
+        FROM agg_columns
+        """
+
+        # Execute the query to get the final query string
+        final_query = conn.execute(query).fetchone()[0]
+
+        # Print the generated SQL for debugging
+        print("Generated SQL query:")
+        print(final_query)
+
+        # Execute the final query and save the result
+        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+
+        print(f"Merged file has been created as '{output_file}'")
+    except duckdb.Error as e:
+        print(f"An error occurred: {e}")
+        print("Generated query was:")
+        print(query)
+    finally:
+        # Close the connection
+        conn.close()

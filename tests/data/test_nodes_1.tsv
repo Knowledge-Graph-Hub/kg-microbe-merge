@@ -1,0 +1,7 @@
+id	category	name	description	xref	provided_by	synonym	iri	object	predicate	relation	same_as	subject	subsets
+NCBITaxon:1933880	biolink:OrganismTaxon	Glutamicibacter halophytocola											
+UniprotKB:A0A5B8I2N0	biolink:Enzyme	Kynureninase 			uniprot_genome_features								
+Proteomes:UP000320717	biolink:Genome	Proteomes:UP000320717			uniprot_genome_features								
+EC:3.7.1.3	biolink:Enzyme	kynureninase											
+CHEBI:597326	biolink:ChemicalSubstance	pyridoxal 5'-phosphate(2-)	The dianion resulting from the removal of two protons from the phosphate group of pyridoxal 5'-phosphate.	PMID:19144516	chebi.json	(4-formyl-5-hydroxy-6-methylpyridin-3-yl)methyl phosphate|3-hydroxy-5-(hydroxymethyl)-2-methylisonicotinaldehyde 5-phosphate dianion|3-hydroxy-5-(hydroxymethyl)-2-methylisonicotinaldehyde 5-phosphate(2-)|pyridoxal 5'-phosphate|pyridoxal 5'-phosphate dianion		http://purl.obolibrary.org/obo/CHEBI_597326		3_STAR			
+CHEBI:597326	biolink:ChemicalEntity												

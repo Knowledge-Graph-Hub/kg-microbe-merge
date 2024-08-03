@@ -1,0 +1,8 @@
+id	subject	predicate	object	relation	knowledge_source
+urn:uuid:2544453a-7ef5-49f3-9b0f-b64f828b4ba1	NCBITaxon:10	biolink:subclass_of	NCBITaxon:1706371	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:68015ecc-63fc-4e6c-b620-dc4635d35947	NCBITaxon:100	biolink:subclass_of	NCBITaxon:99	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:4cd06adb-b8ed-4ad9-89a1-375e6483ae33	NCBITaxon:100000	biolink:subclass_of	NCBITaxon:2624150	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:09b2eb49-b06d-4e42-996a-6b9a59ce4c24	NCBITaxon:1000000	biolink:subclass_of	NCBITaxon:2609290	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:8d1a1a7e-3565-4678-9ffc-6c1887019767	NCBITaxon:1000001	biolink:subclass_of	NCBITaxon:2642494	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:eb9400ce-b021-48dd-badc-40c34d009a39	NCBITaxon:1000002	biolink:subclass_of	NCBITaxon:2642494	rdfs:subClassOf	ncbitaxon_removed_subset.json
+urn:uuid:e2dfa62d-8aba-441c-bca7-0a826aa1cc0f	NCBITaxon:1000003	biolink:subclass_of	NCBITaxon:2637762	rdfs:subClassOf	ncbitaxon_removed_subset.json
