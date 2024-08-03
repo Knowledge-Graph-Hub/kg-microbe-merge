@@ -20,18 +20,9 @@
 ---
 
 # **** Ontology files ****
-# #
-# # ENVO
-# #
-# -
-#   url: http://purl.obolibrary.org/obo/envo.json
-#   local_name: envo.json
-# #
-# # HP
-# #
-# -
-#   url: http://purl.obolibrary.org/obo/hp.json
-#   local_name: hp.json
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/ontologies.tar.gz
+  local_name: ontologies.tar.gz
 
 # **** Data sources ****
 #
