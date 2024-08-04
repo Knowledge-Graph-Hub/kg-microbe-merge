@@ -1,5 +1,6 @@
 """Merging module."""
 
+import csv
 from pathlib import Path
 from typing import Dict, List, Union
 
@@ -51,9 +52,23 @@ def duckdb_merge(
     :param edges_files_path: List of paths to edges files.
     :return: None
     """
-    # TODO: Get priority sources dynamically from the ontologies transform
-    priority_sources = ["go.json", "chebi.json", "ncbitaxon_removed_subset.json"]
+    # For all files in the nodes_files_path which has 'ontologies' dir in path,
+    # get the value of the `provided_by` column in the tsv file and add it to the priority_sources list
 
+    priority_sources = []
+    ontology_nodes_paths = [Path(file_path) for file_path in nodes_files_path if "ontologies" in str(file_path)]
+    for file_path in ontology_nodes_paths:
+        if file_path.suffix == ".tsv":
+            with file_path.open(newline='') as tsvfile:
+                reader = csv.DictReader(tsvfile, delimiter='\t')
+                for row in reader:
+                    provided_by_value = row.get('provided_by')
+                    if provided_by_value:
+                        if provided_by_value == "http://purl.obolibrary.org/obo/RO_0002327":
+                            import pdb; pdb.set_trace()
+                        priority_sources.append(provided_by_value)
+                        break  # We only need the value from one row
+    
     # Merge nodes
     duckdb_nodes_merge(nodes_files_path, merge_nodes_output_path, priority_sources)
 

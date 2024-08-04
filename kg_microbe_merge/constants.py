@@ -1,5 +1,8 @@
 """Constants for merge_utilities."""
 
+from pathlib import Path
+
+
 BASE_NODES_TABLE_NAME = "base_kg_nodes"
 SUBSET_NODES_TABLE_NAME = "subset_kg_nodes"
 BASE_EDGES_TABLE_NAME = "base_kg_edges"
@@ -20,3 +23,9 @@ NODES_COLUMNS = [
     "subsets",
 ]
 EDGES_COLUMNS = ["subject", "predicate", "object", "relation", "primary_knowledge_source"]
+
+PWD = Path.cwd().resolve()
+DATA_DIR = PWD / "data"
+RAW_DATA_DIR = DATA_DIR / "raw"
+MERGED_DATA_DIR = DATA_DIR / "merged"
+

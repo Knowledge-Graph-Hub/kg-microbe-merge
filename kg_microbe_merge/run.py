@@ -7,6 +7,9 @@ from typing import Union
 
 import click
 
+from kg_microbe_merge.constants import MERGED_DATA_DIR, RAW_DATA_DIR
+from kg_microbe_merge.utils.file_utils import unzip_files_in_dir
+
 try:
     from kg_chat.app import create_app
     from kg_chat.implementations import DuckDBImplementation, Neo4jImplementation
@@ -19,7 +22,7 @@ except ImportError:
     KnowledgeGraphChat = None
 
 from kg_microbe_merge import download as kg_download
-from kg_microbe_merge.merge_utils.merge_kg import duckdb_merge, load_and_merge
+from kg_microbe_merge.merge import duckdb_merge, load_and_merge
 from kg_microbe_merge.query import parse_query_yaml, result_dict_to_tsv, run_query
 
 database_options = click.option(
@@ -79,21 +82,23 @@ def download(*args, **kwargs) -> None:
 
 
 @main.command()
-@click.option("yaml", "-y", default="merge.yaml", type=click.Path(exists=True))
+@click.option("yaml", "-y", type=click.Path(exists=True), required=False)
 @click.option("processes", "-p", default=1, type=int)
-@click.option("merge_tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
-@click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
-@click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
-@click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
-@click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
+@click.option("--merge-tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
+# @click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
+# @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
+# @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
+# @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
+@click.option("--data-dir", "-d", type=click.Path(exists=True), default = RAW_DATA_DIR)
 def merge(
     yaml: str,
     processes: int,
     merge_tool: str,
-    base_nodes: str,
-    base_edges: str,
-    subset_nodes: str,
-    subset_edges: str,
+    data_dir: str,
+    # base_nodes: str,
+    # base_edges: str,
+    # subset_nodes: str,
+    # subset_edges: str,
 ) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
@@ -103,7 +108,23 @@ def merge(
     :return: None
     """
     if merge_tool == "duckdb":
-        duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
+        unzip_files_in_dir(data_dir)
+        node_paths = []
+        edge_paths = []
+        for directory in os.listdir(data_dir):
+            if os.path.isdir(os.path.join(data_dir, directory)):
+                if directory != "ontologies":
+                    node_paths.append(os.path.join(data_dir, directory, "nodes.tsv"))
+                    edge_paths.append(os.path.join(data_dir, directory, "edges.tsv"))
+                else:
+                    for file in os.listdir(os.path.join(data_dir, directory)):
+                        if file.endswith(".tsv") and not file.startswith("._"):
+                            if "nodes" in file:
+                                node_paths.append(os.path.join(data_dir, directory, file))
+                            elif "edges" in file:
+                                edge_paths.append(os.path.join(data_dir, directory, file))
+        duckdb_merge(node_paths, edge_paths, MERGED_DATA_DIR/"nodes.tsv", MERGED_DATA_DIR/"edges.tsv")
+        # duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
     else:
         load_and_merge(yaml, processes)
 
