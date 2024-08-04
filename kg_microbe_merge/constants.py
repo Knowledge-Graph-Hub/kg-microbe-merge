@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 BASE_NODES_TABLE_NAME = "base_kg_nodes"
 SUBSET_NODES_TABLE_NAME = "subset_kg_nodes"
 BASE_EDGES_TABLE_NAME = "base_kg_edges"
@@ -28,4 +27,3 @@ PWD = Path.cwd().resolve()
 DATA_DIR = PWD / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 MERGED_DATA_DIR = DATA_DIR / "merged"
-

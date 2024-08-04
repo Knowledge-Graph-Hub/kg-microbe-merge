@@ -50,6 +50,7 @@ lint.extend-ignore = [
     "D211",  # `no-blank-line-before-class`
     "D212",  # `multi-line-summary-first-line`
     "S608" , # Possible SQL injection vector through string-based query construction"
+    "S202",  # Uses of `tarfile.extractall()`
     ]
 line-length = 120
 

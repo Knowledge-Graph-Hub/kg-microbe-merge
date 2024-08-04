@@ -56,17 +56,19 @@ def duckdb_merge(
     # get the value of the `provided_by` column in the tsv file and add it to the priority_sources list
 
     priority_sources = []
-    ontology_nodes_paths = [Path(file_path) for file_path in nodes_files_path if "ontologies" in str(file_path)]
+    ontology_nodes_paths = [
+        Path(file_path) for file_path in nodes_files_path if "ontologies" in str(file_path)
+    ]
     for file_path in ontology_nodes_paths:
         if file_path.suffix == ".tsv":
-            with file_path.open(newline='') as tsvfile:
-                reader = csv.DictReader(tsvfile, delimiter='\t')
+            with file_path.open(newline="") as tsvfile:
+                reader = csv.DictReader(tsvfile, delimiter="\t")
                 for row in reader:
-                    provided_by_value = row.get('provided_by')
+                    provided_by_value = row.get("provided_by")
                     if provided_by_value:
                         priority_sources.append(provided_by_value)
                         break  # We only need the value from one row
-    
+
     # Merge nodes
     duckdb_nodes_merge(nodes_files_path, merge_nodes_output_path, priority_sources)
 

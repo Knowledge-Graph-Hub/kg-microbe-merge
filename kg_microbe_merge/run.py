@@ -89,7 +89,7 @@ def download(*args, **kwargs) -> None:
 # @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
 # @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
 # @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
-@click.option("--data-dir", "-d", type=click.Path(exists=True), default = RAW_DATA_DIR)
+@click.option("--data-dir", "-d", type=click.Path(exists=True), default=RAW_DATA_DIR)
 def merge(
     yaml: str,
     processes: int,
@@ -123,7 +123,9 @@ def merge(
                                 node_paths.append(os.path.join(data_dir, directory, file))
                             elif "edges" in file:
                                 edge_paths.append(os.path.join(data_dir, directory, file))
-        duckdb_merge(node_paths, edge_paths, MERGED_DATA_DIR/"nodes.tsv", MERGED_DATA_DIR/"edges.tsv")
+        duckdb_merge(
+            node_paths, edge_paths, MERGED_DATA_DIR / "nodes.tsv", MERGED_DATA_DIR / "edges.tsv"
+        )
         # duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
     else:
         load_and_merge(yaml, processes)
