@@ -64,8 +64,6 @@ def duckdb_merge(
                 for row in reader:
                     provided_by_value = row.get('provided_by')
                     if provided_by_value:
-                        if provided_by_value == "http://purl.obolibrary.org/obo/RO_0002327":
-                            import pdb; pdb.set_trace()
                         priority_sources.append(provided_by_value)
                         break  # We only need the value from one row
     
