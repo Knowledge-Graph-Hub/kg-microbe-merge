@@ -64,22 +64,7 @@ class TestDuckDBMerge(unittest.TestCase):
                 "Number of lines in output and expected files do not match",
             )
 
-            # ! Commented block below because GH Action py3.9 complains about strict=False
-            # ! E           TypeError: zip() takes no keyword arguments
-            # for i, (output_line, expected_line) in enumerate(
-            #     zip(output_lines, expected_lines, strict=False)
-            # ):
-            #     self.assertEqual(
-            #         output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
-            #     )
-            # Check if the lengths of the iterables match
-            if len(output_lines) != len(expected_lines):
-                raise ValueError("Iterables have different lengths")
-
-            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines, strict=False)):
-                self.assertEqual(
-                    output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
-                )
+            
 
     def test_edges_merge(self):
         """Test edges merge."""
@@ -108,19 +93,4 @@ class TestDuckDBMerge(unittest.TestCase):
                 "Number of lines in output and expected files do not match",
             )
 
-            # ! Commented block below because GH Action py3.9 complains about strict=False
-            # ! E           TypeError: zip() takes no keyword arguments
-            # for i, (output_line, expected_line) in enumerate(
-            #     zip(output_lines, expected_lines, strict=False)
-            # ):
-            #     self.assertEqual(
-            #         output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
-            #     )
-            # Check if the lengths of the iterables match
-            if len(output_lines) != len(expected_lines):
-                raise ValueError("Iterables have different lengths")
-
-            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines, strict=False)):
-                self.assertEqual(
-                    output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
-                )
+            
