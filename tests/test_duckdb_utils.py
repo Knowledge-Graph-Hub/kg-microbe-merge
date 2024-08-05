@@ -64,8 +64,6 @@ class TestDuckDBMerge(unittest.TestCase):
                 "Number of lines in output and expected files do not match",
             )
 
-            
-
     def test_edges_merge(self):
         """Test edges merge."""
         # Run the merge function
@@ -92,5 +90,3 @@ class TestDuckDBMerge(unittest.TestCase):
                 len(expected_lines),
                 "Number of lines in output and expected files do not match",
             )
-
-            
