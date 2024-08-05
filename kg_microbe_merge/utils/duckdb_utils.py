@@ -262,9 +262,9 @@ def load_into_duckdb(conn, file_list, table_name, exclude_columns=None):
     print(f"Loaded {len(file_list)} files into table '{table_name}'")
 
 
-def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, chunk_size=100000):
+def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_size=100000):
     """
-    Merge nodes files using DuckDB with chunking for large datasets.
+    Merge nodes files using DuckDB with batching for large datasets.
 
     :param nodes_file_list: List of paths to nodes files.
     :param output_file: Path to the output file.
@@ -297,18 +297,18 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, chunk_siz
     # * 3. SELECT STRING_AGG(...):
     # *    - Combines all aggregation expressions into a single string.
 
-    # * 4. The resulting aggregation expressions are then used in a chunked processing approach:
-    # *    - Divide the data into chunks based on unique IDs.
-    # *    - For each chunk:
+    # * 4. The resulting aggregation expressions are then used in a batched processing approach:
+    # *    - Divide the data into batches based on unique IDs.
+    # *    - For each batch:
     # *      a. Select the relevant IDs.
     # *      b. Apply the aggregation expressions.
     # *      c. Group by ID and order the results.
     # *      d. Write the results to the output file.
 
-    # * This chunked approach allows for processing of large datasets by:
+    # * This batched approach allows for processing of large datasets by:
     # * - Reducing memory usage by processing subsets of data at a time.
     # * - Maintaining the same aggregation logic as the original query.
-    # * - Ensuring consistent output formatting across all chunks.
+    # * - Ensuring consistent output formatting across all batches.
 
     try:
         # Construct the query to get columns and their aggregation expressions
@@ -340,36 +340,36 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, chunk_siz
         # Get the total number of unique IDs
         total_ids = conn.execute("SELECT COUNT(DISTINCT id) FROM combined_nodes").fetchone()[0]
 
-        # Process in chunks
-        for offset in range(0, total_ids, chunk_size):
-            chunk_query = f"""
-            WITH chunk_ids AS (
+        # Process in batches
+        for offset in range(0, total_ids, batch_size):
+            batch_query = f"""
+            WITH batch_ids AS (
                 SELECT DISTINCT id
                 FROM combined_nodes
                 ORDER BY id
-                LIMIT {chunk_size} OFFSET {offset}
+                LIMIT {batch_size} OFFSET {offset}
             )
             SELECT {agg_expressions}
             FROM combined_nodes
-            WHERE id IN (SELECT id FROM chunk_ids)
+            WHERE id IN (SELECT id FROM batch_ids)
             GROUP BY id
             ORDER BY id
             """
 
-            # Print the generated SQL for debugging (only for the first chunk)
+            # Print the generated SQL for debugging (only for the first batch)
             if offset == 0:
-                print("Generated SQL query (for first chunk):")
-                print(chunk_query)
-                # For the first chunk, create the file with headers
-                conn.execute(f"COPY ({chunk_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+                print("Generated SQL query (for first batch):")
+                print(batch_query)
+                # For the first batch, create the file with headers
+                conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
 
             else:
-                # For subsequent chunks, append without headers
-                # conn.execute(f"COPY ({chunk_query}) TO '{output_file}' (DELIMITER '\t', HEADER FALSE)")
-                chunk_data = conn.execute(chunk_query).fetch_df()
-                chunk_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
+                # For subsequent batches, append without headers
+                # conn.execute(f"COPY ({batch_query}) TO '{output_file}' (DELIMITER '\t', HEADER FALSE)")
+                batch_data = conn.execute(batch_query).fetch_df()
+                batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-            print(f"Processed {min(offset + chunk_size, total_ids)} / {total_ids} nodes")
+            print(f"Processed {min(offset + batch_size, total_ids)} / {total_ids} nodes")
 
         print(f"Merged file has been created as '{output_file}'")
     except duckdb.Error as e:
@@ -381,7 +381,7 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, chunk_siz
         conn.close()
 
 
-def duckdb_edges_merge(edges_file_list, output_file):
+def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
     """
     Merge edges files using DuckDB.
 
@@ -455,14 +455,46 @@ def duckdb_edges_merge(edges_file_list, output_file):
         """
 
         # Execute the query to get the final query string
-        final_query = conn.execute(query).fetchone()[0]
+        agg_expressions = conn.execute(query).fetchone()[0]
+
+        # Get total number of unique edges
+        total_edges = conn.execute(
+            "SELECT COUNT(*) FROM combined_edges"
+        ).fetchone()[0]
+
+        # Process in batches
+        for offset in range(0, total_edges, batch_size):
+            batch_query = f"""
+            WITH batch_edges AS (
+                SELECT DISTINCT subject, predicate, object
+                FROM combined_edges
+                ORDER BY subject, predicate, object
+                LIMIT {batch_size} OFFSET {offset}
+            )
+            {agg_expressions}
+            """
+
+            # Print the generated SQL for debugging
+            if offset == 0:
+                print("Generated SQL query (for first batch):")
+                print(batch_query)
+                conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+            else:
+                batch_data = conn.execute(batch_query).fetch_df()
+                batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
+
+            print(f"Processed {min(offset + batch_size, total_edges)} / {total_edges} edges")
 
         # Print the generated SQL for debugging
         print("Generated SQL query:")
-        print(final_query)
+        print(batch_query)
+
+        # Get the total number of rows
+        total_rows = conn.execute("SELECT COUNT(*) FROM combined_edges").fetchone()[0]
+
 
         # Execute the final query and save the result
-        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+        conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
 
         print(f"Merged file has been created as '{output_file}'")
     except duckdb.Error as e:
