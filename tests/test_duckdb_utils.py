@@ -76,7 +76,7 @@ class TestDuckDBMerge(unittest.TestCase):
             if len(output_lines) != len(expected_lines):
                 raise ValueError("Iterables have different lengths")
 
-            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines, strict=False)):
+            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines)):
                 self.assertEqual(
                     output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
                 )
@@ -120,7 +120,7 @@ class TestDuckDBMerge(unittest.TestCase):
             if len(output_lines) != len(expected_lines):
                 raise ValueError("Iterables have different lengths")
 
-            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines, strict=False)):
+            for i, (output_line, expected_line) in enumerate(zip(output_lines, expected_lines)):
                 self.assertEqual(
                     output_line.strip(), expected_line.strip(), f"Mismatch at line {i+1}"
                 )
