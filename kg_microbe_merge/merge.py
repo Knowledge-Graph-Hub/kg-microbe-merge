@@ -46,7 +46,8 @@ def duckdb_merge(
     edges_files_path: List[Union[str, Path]],
     merge_nodes_output_path: Union[str, Path],
     merged_edges_output_path: Union[str, Path],
-    batch_size: int = 100000,
+    nodes_batch_size: int = 100000,
+    edges_batch_size: int = 2000000,
 ) -> None:
     """
     Merge nodes and edges tables using DuckDB.
@@ -72,10 +73,12 @@ def duckdb_merge(
                     break  # We only need the value from one row
 
     # Merge nodes
-    duckdb_nodes_merge(nodes_files_path, merge_nodes_output_path, priority_sources, batch_size)
+    duckdb_nodes_merge(
+        nodes_files_path, merge_nodes_output_path, priority_sources, nodes_batch_size
+    )
 
     # Merge edges
-    duckdb_edges_merge(edges_files_path, merged_edges_output_path, batch_size)
+    duckdb_edges_merge(edges_files_path, merged_edges_output_path, edges_batch_size)
 
     # Tarball all files in a directory
     tarball_files_in_dir(MERGED_DATA_DIR, "merged_kg")

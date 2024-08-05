@@ -380,7 +380,7 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
         conn.close()
 
 
-def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
+def duckdb_edges_merge(edges_file_list, output_file, batch_size=2000000):
     """
     Merge edges files using DuckDB.
 
