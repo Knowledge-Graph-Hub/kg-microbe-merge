@@ -458,9 +458,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
         agg_expressions = conn.execute(query).fetchone()[0]
 
         # Get total number of unique edges
-        total_edges = conn.execute(
-            "SELECT COUNT(*) FROM combined_edges"
-        ).fetchone()[0]
+        total_edges = conn.execute("SELECT COUNT(*) FROM combined_edges").fetchone()[0]
 
         # Process in batches
         for offset in range(0, total_edges, batch_size):
@@ -488,10 +486,6 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
         # Print the generated SQL for debugging
         print("Generated SQL query:")
         print(batch_query)
-
-        # Get the total number of rows
-        total_rows = conn.execute("SELECT COUNT(*) FROM combined_edges").fetchone()[0]
-
 
         # Execute the final query and save the result
         conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")

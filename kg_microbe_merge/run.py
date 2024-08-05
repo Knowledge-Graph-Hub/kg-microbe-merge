@@ -126,7 +126,11 @@ def merge(
                             elif "edges" in file:
                                 edge_paths.append(os.path.join(data_dir, directory, file))
         duckdb_merge(
-            node_paths, edge_paths, MERGED_DATA_DIR / "nodes.tsv", MERGED_DATA_DIR / "edges.tsv", batch_size
+            node_paths,
+            edge_paths,
+            MERGED_DATA_DIR / "nodes.tsv",
+            MERGED_DATA_DIR / "edges.tsv",
+            batch_size,
         )
         # duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
     else:
