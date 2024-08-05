@@ -222,27 +222,49 @@ def load_into_duckdb(conn, file_list, table_name, exclude_columns=None):
     if exclude_columns is None:
         exclude_columns = []
 
+    # Collect all columns from all files
+    all_columns = []
+    file_columns_dict = {}
+
+    for idx, file in enumerate(file_list):
+        columns_query = f"SELECT * FROM read_csv_auto('{file}', header=true, sep='\t') LIMIT 0"
+        all_columns = conn.execute(columns_query).df().columns.tolist()
+        file_columns_dict[file] = all_columns
+        if idx == 0:
+            all_columns.extend(all_columns)
+        else:
+            all_columns.extend([col for col in all_columns if col not in all_columns])
+
     # Read the structure of the first file to get column names
-    first_file = file_list[0]
-    columns_query = f"SELECT * FROM read_csv_auto('{first_file}', header=true, sep='\t') LIMIT 0"
-    columns = conn.execute(columns_query).df().columns.tolist()
+    all_columns = conn.execute(columns_query).df().columns.tolist()
 
     # Filter out excluded columns
-    columns = [col for col in columns if col not in exclude_columns]
-    columns_str = ", ".join(columns)
+    all_columns = [col for col in all_columns if col not in exclude_columns]
+    # columns_str = ", ".join(all_columns)
 
-    union_queries = [
-        f"SELECT {columns_str} FROM read_csv_auto('{file}', header=true, sep='\t')"
-        for file in file_list
-    ]
-    union_all_query = " UNION ALL ".join(union_queries)
-    conn.execute(f"CREATE OR REPLACE TABLE {table_name} AS ({union_all_query})")
+    create_table_query = f"""CREATE OR REPLACE TABLE {table_name}
+                                 ({', '.join([f'{col} VARCHAR' for col in all_columns])})"""
+    print(f"Create Table Query: {create_table_query}")  # Debugging line
+    conn.execute(create_table_query)
+
+    # Insert data from each file
+    for file in file_list:
+        file_columns = file_columns_dict[file]
+        select_parts = [
+            f"{col}" if col in file_columns else f"NULL AS {col}" for col in all_columns
+        ]
+        select_str = ", ".join(select_parts)
+        insert_query = f"""INSERT INTO {table_name} SELECT {select_str} FROM read_csv_auto('{file}',
+                                 header=true, sep='\t')"""
+        print(f"Insert Query: {insert_query}")  # Debugging line
+        conn.execute(insert_query)
+
     print(f"Loaded {len(file_list)} files into table '{table_name}'")
 
 
-def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources):
+def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, chunk_size=100000):
     """
-    Merge nodes files using DuckDB.
+    Merge nodes files using DuckDB with chunking for large datasets.
 
     :param nodes_file_list: List of paths to nodes files.
     :param output_file: Path to the output file.
@@ -272,20 +294,24 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources):
     # *      c. For all other columns:
     # *         - Concatenate all distinct values with '|' as separator.
 
-    # * 3. SELECT 'SELECT ' || string_agg(...):
-    # *    - Constructs the final SELECT statement dynamically:
-    # *      a. Combines all aggregation expressions into a single SELECT statement.
-    # *      b. Adds GROUP BY id to group all rows with the same id.
-    # *      c. Adds ORDER BY id to sort the final output.
+    # * 3. SELECT STRING_AGG(...):
+    # *    - Combines all aggregation expressions into a single string.
 
-    # * The resulting query will:
-    # * - Combine all rows with the same 'id'
-    # * - Prioritize 'name' from rows where 'provided_by' matches any value in priority_sources
-    # * - Merge all other columns by concatenating distinct values
-    # * - Sort the output by 'id'
+    # * 4. The resulting aggregation expressions are then used in a chunked processing approach:
+    # *    - Divide the data into chunks based on unique IDs.
+    # *    - For each chunk:
+    # *      a. Select the relevant IDs.
+    # *      b. Apply the aggregation expressions.
+    # *      c. Group by ID and order the results.
+    # *      d. Write the results to the output file.
+
+    # * This chunked approach allows for processing of large datasets by:
+    # * - Reducing memory usage by processing subsets of data at a time.
+    # * - Maintaining the same aggregation logic as the original query.
+    # * - Ensuring consistent output formatting across all chunks.
 
     try:
-        # Construct the query to merge the nodes
+        # Construct the query to get columns and their aggregation expressions
         query = f"""
         WITH columns AS (
             SELECT column_name
@@ -304,21 +330,46 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources):
                 END AS agg_expr
             FROM columns
         )
-        SELECT
-            'SELECT ' || STRING_AGG(agg_expr, ', ') ||
-            ' FROM combined_nodes GROUP BY id ORDER BY id' AS final_query
+        SELECT STRING_AGG(agg_expr, ', ') AS agg_expressions
         FROM agg_columns
         """
 
-        # Execute the query to get the final query string
-        final_query = conn.execute(query).fetchone()[0]
+        # Execute the query to get the aggregation expressions
+        agg_expressions = conn.execute(query).fetchone()[0]
 
-        # Print the generated SQL for debugging
-        print("Generated SQL query:")
-        print(final_query)
+        # Get the total number of unique IDs
+        total_ids = conn.execute("SELECT COUNT(DISTINCT id) FROM combined_nodes").fetchone()[0]
 
-        # Execute the final query and save the result
-        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+        # Process in chunks
+        for offset in range(0, total_ids, chunk_size):
+            chunk_query = f"""
+            WITH chunk_ids AS (
+                SELECT DISTINCT id
+                FROM combined_nodes
+                ORDER BY id
+                LIMIT {chunk_size} OFFSET {offset}
+            )
+            SELECT {agg_expressions}
+            FROM combined_nodes
+            WHERE id IN (SELECT id FROM chunk_ids)
+            GROUP BY id
+            ORDER BY id
+            """
+
+            # Print the generated SQL for debugging (only for the first chunk)
+            if offset == 0:
+                print("Generated SQL query (for first chunk):")
+                print(chunk_query)
+                # For the first chunk, create the file with headers
+                conn.execute(f"COPY ({chunk_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+
+            else:
+                # For subsequent chunks, append without headers
+                # conn.execute(f"COPY ({chunk_query}) TO '{output_file}' (DELIMITER '\t', HEADER FALSE)")
+                chunk_data = conn.execute(chunk_query).fetch_df()
+                chunk_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
+
+            print(f"Processed {min(offset + chunk_size, total_ids)} / {total_ids} nodes")
 
         print(f"Merged file has been created as '{output_file}'")
     except duckdb.Error as e:

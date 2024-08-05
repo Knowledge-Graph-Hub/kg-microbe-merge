@@ -130,3 +130,5 @@ dmypy.json
 .DS_Store
 data/raw/*
 tests/data/output/*.tsv
+data/merged/*
+.tmp/*
