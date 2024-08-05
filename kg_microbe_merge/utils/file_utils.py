@@ -25,3 +25,18 @@ def unzip_files_in_dir(dir_path: Union[str, Path]) -> None:
                 tar.extractall(path=extract_dir)
                 tar.close()
                 print(f"Extracted {file.name} to {extract_dir}")
+
+
+def tarball_files_in_dir(dir_path: Union[str, Path], filename: str) -> None:
+    """
+    Tarball all files in a directory.
+
+    :param dir_path: Path to the directory containing the files to tarball.
+    :return: None
+    """
+    dir_path = Path(dir_path)
+    with tarfile.open(f"{dir_path}/{filename}.tar.gz", "w:gz") as tar:
+        for file in dir_path.iterdir():
+            tar.add(file, arcname=file.name)
+            print(f"Added {file.name} to {dir_path}/{filename}.tar.gz")
+    tar.close()

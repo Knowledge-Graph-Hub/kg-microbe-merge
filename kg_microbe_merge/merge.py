@@ -8,10 +8,12 @@ import networkx as nx  # type: ignore
 import yaml
 from kgx.cli.cli_utils import merge  # type: ignore
 
+from kg_microbe_merge.constants import MERGED_DATA_DIR
 from kg_microbe_merge.utils.duckdb_utils import (
     duckdb_edges_merge,
     duckdb_nodes_merge,
 )
+from kg_microbe_merge.utils.file_utils import tarball_files_in_dir
 
 
 def parse_load_config(yaml_file: str) -> Dict:
@@ -73,6 +75,9 @@ def duckdb_merge(
 
     # Merge edges
     duckdb_edges_merge(edges_files_path, merged_edges_output_path)
+
+    # Tarball all files in a directory
+    tarball_files_in_dir(MERGED_DATA_DIR, "merged_kg")
 
 
 # def duckdb_merge(
