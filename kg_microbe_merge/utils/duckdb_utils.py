@@ -209,7 +209,6 @@ def write_file(con, columns, filename, table_name):
     )
 
 
-# * Revised code below
 def load_into_duckdb(conn, file_list, table_name, exclude_columns=None):
     """
     Load multiple files into a single DuckDB table.
@@ -278,38 +277,39 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
 
     priority_sources_str = ", ".join(f"''{source}''" for source in priority_sources)
 
-    # * Construct the query to merge the nodes
+    """
+    Construct the query to merge the nodes
 
-    # * This query performs the following operations:
-    # * 1. WITH columns AS (...):
-    # *    - Retrieves all column names from the 'combined_nodes' table.
+    This query performs the following operations:
+    1. WITH columns AS (...):
+       - Retrieves all column names from the 'combined_nodes' table.
 
-    # * 2. WITH agg_columns AS (...):
-    # *    - Generates aggregation expressions for each column:
-    # *      a. For 'id': Keep as is (used for grouping)
-    # *      b. For 'name':
-    # *         - If any row for this id has 'provided_by' matching any value in the priority_sources list,
-    # *           select the 'name' from that row.
-    # *         - Otherwise, select the first 'name' encountered.
-    # *      c. For all other columns:
-    # *         - Concatenate all distinct values with '|' as separator.
+    2. WITH agg_columns AS (...):
+       - Generates aggregation expressions for each column:
+         a. For 'id': Keep as is (used for grouping)
+         b. For 'name':
+            - If any row for this id has 'provided_by' matching any value in the priority_sources list,
+              select the 'name' from that row.
+            - Otherwise, select the first 'name' encountered.
+         c. For all other columns:
+            - Concatenate all distinct values with '|' as separator.
 
-    # * 3. SELECT STRING_AGG(...):
-    # *    - Combines all aggregation expressions into a single string.
+    3. SELECT STRING_AGG(...):
+       - Combines all aggregation expressions into a single string.
 
-    # * 4. The resulting aggregation expressions are then used in a batched processing approach:
-    # *    - Divide the data into batches based on unique IDs.
-    # *    - For each batch:
-    # *      a. Select the relevant IDs.
-    # *      b. Apply the aggregation expressions.
-    # *      c. Group by ID and order the results.
-    # *      d. Write the results to the output file.
+    4. The resulting aggregation expressions are then used in a batched processing approach:
+       - Divide the data into batches based on unique IDs.
+       - For each batch:
+         a. Select the relevant IDs.
+         b. Apply the aggregation expressions.
+         c. Group by ID and order the results.
+         d. Write the results to the output file.
 
-    # * This batched approach allows for processing of large datasets by:
-    # * - Reducing memory usage by processing subsets of data at a time.
-    # * - Maintaining the same aggregation logic as the original query.
-    # * - Ensuring consistent output formatting across all batches.
-
+    This batched approach allows for processing of large datasets by:
+    - Reducing memory usage by processing subsets of data at a time.
+    - Maintaining the same aggregation logic as the original query.
+    - Ensuring consistent output formatting across all batches.
+    """
     try:
         # Construct the query to get columns and their aggregation expressions
         query = f"""
@@ -394,42 +394,31 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
     # Load the files into DuckDB, excluding the 'id' column
     load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
 
-    # * This SQL query dynamically generates a SELECT statement to merge and deduplicate rows
-    # * from a table named 'combined_edges'.
-    # * Here's a breakdown of its components:
-    # *
-    # * 1. The 'columns' CTE (Common Table Expression):
-    # *    - Retrieves all column names from the 'combined_edges' table using the information_schema.
-    # *    - This allows the query to adapt to any column structure in the 'combined_edges' table.
-    # *
-    # * 2. The 'agg_columns' CTE:
-    # *    - Processes each column from the 'columns' CTE to determine how it should be
-    # *      handled in the final SELECT statement.
-    # *    - For 'subject', 'predicate', and 'object' columns:
-    # *      * These are treated as is, likely serving as unique identifiers for each edge.
-    # *    - For all other columns:
-    # *      * A string_agg function is applied to concatenate all distinct values with a '|' delimiter.
-    # *      * This effectively combines multiple rows with the same subject, predicate, and object into a single row,
-    # *        while preserving all unique values for other attributes.
-    # *
-    # * 3. The main SELECT statement:
-    # *    - Constructs the final SELECT query as a string:
-    # *      * It starts with 'SELECT '.
-    # *      * Then it aggregates all the expressions from 'agg_columns' using string_agg, separating them with commas.
-    # *      * It adds ' FROM combined_edges GROUP BY subject, predicate, object ORDER BY subject, predicate, object'
-    # *        to the end of the query.
-    # *    - The GROUP BY clause ensures that edges with the same subject, predicate, and object are combined.
-    # *    - The ORDER BY clause sorts the results for consistency.
-    # *
-    # * This dynamically generated query, when executed, will:
-    # * 1. Select all columns from 'combined_edges'.
-    # * 2. Combine rows with identical subject, predicate, and object.
-    # * 3. For non-key columns, it will aggregate distinct values with '|' as a separator.
-    # * 4. Sort the results by subject, predicate, and object.
-    # *
-    # * This approach allows for flexible deduplication and merging of edge data,
-    # *   regardless of the specific column structure of the 'combined_edges' table.
+    """
+    Detailed Explanation:
 
+    1. Query Construction:
+       - The initial part of the code constructs a SQL query to merge edges from the `combined_edges` table.
+       - It uses two Common Table Expressions (CTEs):
+         - `columns`: Retrieves all column names from the `combined_edges` table.
+         - `agg_columns`: Constructs aggregation expressions for each column. For `subject`, `predicate`, and `object`, it keeps them as is. For other columns, it creates a `string_agg` expression to concatenate distinct values with a delimiter.
+
+    2. Final Query Generation:
+       - The final query string is constructed by concatenating the aggregation expressions and grouping by `subject`, `predicate`, and `object`.
+
+    3. Execution and Batch Processing:
+       - The constructed query is executed to get the final query string (`agg_expressions`).
+       - The total number of unique edges is fetched from the `combined_edges` table.
+       - The edges are processed in batches using a loop. For each batch:
+         - A batch-specific query is constructed to select distinct edges with a limit and offset.
+         - The batch query is executed, and the results are either printed (for the first batch) or appended to an output file.
+
+    4. Error Handling:
+       - If any error occurs during the execution, it is caught, and an error message along with the generated query is printed.
+
+    5. Connection Closure:
+       - Finally, the database connection is closed to ensure no resources are leaked.
+    """
     try:
         # Construct the query to merge the edges
         query = """
