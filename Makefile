@@ -23,3 +23,7 @@
 
 datamodel:
 	poetry run gen-python $(PWD)/kg_microbe_merge/schema/merge_schema.yaml > $(PWD)/kg_microbe_merge/schema/merge_datamodel.py
+
+
+subset-merge:
+	poetry run kg merge -m duckdb -s "bacdive, bactotraits, chebi, ncbitaxon"

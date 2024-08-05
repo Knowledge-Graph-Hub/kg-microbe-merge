@@ -90,6 +90,7 @@ def download(*args, **kwargs) -> None:
 # @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
 # @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
 @click.option("--data-dir", "-d", type=click.Path(exists=True), default=RAW_DATA_DIR)
+@click.option("--subset-transforms", "-s", multiple=True)
 @click.option("--nodes-batch-size", "-n", type=int, default=100000)
 @click.option("--edges-batch-size", "-e", type=int, default=2000000)
 def merge(
@@ -97,6 +98,7 @@ def merge(
     processes: int,
     merge_tool: str,
     data_dir: str,
+    subset_transforms: list,
     nodes_batch_size: int,
     edges_batch_size: int,
     # base_nodes: str,
@@ -107,26 +109,64 @@ def merge(
     """
     Use KGX to load subgraphs to create a merged graph.
 
-    :param yaml: A string pointing to a KGX compatible config YAML.
+    :param yaml: A YAML file containing a list of datasets to load.
     :param processes: Number of processes to use.
-    :return: None
+    :param merge_tool: The tool to use for merging.
+    :param data_dir: The directory containing the data.
+    :param transforms: The transforms to apply.
+    :param nodes_batch_size: The batch size for nodes.
+    :param edges_batch_size: The batch size for edges.
+    :return: None.
     """
+    data_dir_path = Path(data_dir)
+
     if merge_tool == "duckdb":
-        unzip_files_in_dir(data_dir)
+        unzip_files_in_dir(data_dir_path)
         node_paths = []
         edge_paths = []
-        for directory in os.listdir(data_dir):
-            if os.path.isdir(os.path.join(data_dir, directory)):
-                if directory != "ontologies":
-                    node_paths.append(os.path.join(data_dir, directory, "nodes.tsv"))
-                    edge_paths.append(os.path.join(data_dir, directory, "edges.tsv"))
-                else:
-                    for file in os.listdir(os.path.join(data_dir, directory)):
-                        if file.endswith(".tsv") and not file.startswith("._"):
-                            if "nodes" in file:
-                                node_paths.append(os.path.join(data_dir, directory, file))
-                            elif "edges" in file:
-                                edge_paths.append(os.path.join(data_dir, directory, file))
+
+        if subset_transforms:
+            transforms_lower = {
+                transform.strip().lower() for transform in subset_transforms[0].split(",")
+            }
+            transform_dirs = [
+                dir
+                for dir in data_dir_path.iterdir()
+                if dir.is_dir() and dir.name.lower() in transforms_lower
+            ]
+            ontology_transforms = transforms_lower - {dir.name.lower() for dir in transform_dirs}
+
+            for directory in transform_dirs:
+                node_paths.append(directory / "nodes.tsv")
+                edge_paths.append(directory / "edges.tsv")
+
+            if ontology_transforms:
+                ontology_dir = data_dir_path / "ontologies"
+                for file in ontology_dir.iterdir():
+                    if file.is_file() and file.suffix == ".tsv" and not file.name.startswith("._"):
+                        if any(transform in file.name.lower() for transform in ontology_transforms):
+                            if "nodes" in file.name:
+                                node_paths.append(file)
+                            elif "edges" in file.name:
+                                edge_paths.append(file)
+        else:
+            for directory in data_dir_path.iterdir():
+                if directory.is_dir():
+                    if directory.name != "ontologies":
+                        node_paths.append(directory / "nodes.tsv")
+                        edge_paths.append(directory / "edges.tsv")
+                    else:
+                        for file in directory.iterdir():
+                            if (
+                                file.is_file()
+                                and file.suffix == ".tsv"
+                                and not file.name.startswith("._")
+                            ):
+                                if "nodes" in file.name:
+                                    node_paths.append(file)
+                                elif "edges" in file.name:
+                                    edge_paths.append(file)
+
         duckdb_merge(
             node_paths,
             edge_paths,
