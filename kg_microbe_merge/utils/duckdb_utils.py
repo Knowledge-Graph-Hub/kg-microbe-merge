@@ -365,11 +365,10 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
 
             else:
                 # For subsequent batches, append without headers
-                # conn.execute(f"COPY ({batch_query}) TO '{output_file}' (DELIMITER '\t', HEADER FALSE)")
                 batch_data = conn.execute(batch_query).fetch_df()
                 batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-            print(f"Processed {min(offset + batch_size, total_ids)} / {total_ids} nodes")
+            print(f"Written {min(offset + batch_size, total_ids)} / {total_ids} nodes")
 
         print(f"Merged file has been created as '{output_file}'")
     except duckdb.Error as e:
@@ -401,20 +400,25 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
        - The initial part of the code constructs a SQL query to merge edges from the `combined_edges` table.
        - It uses two Common Table Expressions (CTEs):
          - `columns`: Retrieves all column names from the `combined_edges` table.
-         - `agg_columns`: Constructs aggregation expressions for each column. For `subject`, `predicate`, and `object`, it keeps them as is. For other columns, it creates a `string_agg` expression to concatenate distinct values with a delimiter.
+         - `agg_columns`: Constructs aggregation expressions for each column.
+            For `subject`, `predicate`, and `object`, it keeps them as is. For other columns,
+            it creates a `string_agg` expression to concatenate distinct values with a delimiter.
 
     2. Final Query Generation:
-       - The final query string is constructed by concatenating the aggregation expressions and grouping by `subject`, `predicate`, and `object`.
+       - The final query string is constructed by concatenating the aggregation expressions and grouping by
+        `subject`, `predicate`, and `object`.
 
     3. Execution and Batch Processing:
        - The constructed query is executed to get the final query string (`agg_expressions`).
        - The total number of unique edges is fetched from the `combined_edges` table.
        - The edges are processed in batches using a loop. For each batch:
          - A batch-specific query is constructed to select distinct edges with a limit and offset.
-         - The batch query is executed, and the results are either printed (for the first batch) or appended to an output file.
+         - The batch query is executed, and the results are either printed (for the first batch) or
+            appended to an output file.
 
     4. Error Handling:
-       - If any error occurs during the execution, it is caught, and an error message along with the generated query is printed.
+       - If any error occurs during the execution, it is caught, and an error message along with
+        the generated query is printed.
 
     5. Connection Closure:
        - Finally, the database connection is closed to ensure no resources are leaked.
@@ -470,7 +474,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=100000):
                 batch_data = conn.execute(batch_query).fetch_df()
                 batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-            print(f"Processed {min(offset + batch_size, total_edges)} / {total_edges} edges")
+            print(f"Written {min(offset + batch_size, total_edges)} / {total_edges} edges")
 
         # Print the generated SQL for debugging
         print("Generated SQL query:")
