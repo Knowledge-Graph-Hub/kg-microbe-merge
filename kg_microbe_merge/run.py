@@ -3,11 +3,14 @@
 import os
 from pathlib import Path
 from pprint import pprint
+import tempfile
 from typing import Union
 
 import click
+from linkml_runtime.dumpers import yaml_dumper
 
-from kg_microbe_merge.constants import MERGED_DATA_DIR, RAW_DATA_DIR
+from kg_microbe_merge.constants import MERGED_DATA_DIR, MERGED_GRAPH_STATS_FILE, RAW_DATA_DIR
+from kg_microbe_merge.schema.merge_datamodel import Configuration, Destination, MergeKG, Operations
 from kg_microbe_merge.utils.file_utils import (
     collect_all_kg_paths,
     collect_subset_kg_paths,
@@ -123,16 +126,21 @@ def merge(
     :return: None.
     """
     data_dir_path = Path(data_dir)
+    unzip_files_in_dir(data_dir_path)
+    node_paths = []
+    edge_paths = []
+    merge_configuration = Configuration(output_directory=MERGED_DATA_DIR, checkpoint=False)
+    merge_kg_object = MergeKG(configuration=merge_configuration)
 
+    if subset_transforms:
+        node_paths, edge_paths, merged_graph_object = collect_subset_kg_paths(
+            subset_transforms, data_dir_path
+        )
+    else:
+        node_paths, edge_paths, merged_graph_object = collect_all_kg_paths(data_dir_path)
+
+    merge_kg_object.merged_graph = merged_graph_object
     if merge_tool == "duckdb":
-        unzip_files_in_dir(data_dir_path)
-        node_paths = []
-        edge_paths = []
-
-        if subset_transforms:
-            node_paths, edge_paths = collect_subset_kg_paths(subset_transforms, data_dir_path)
-        else:
-            node_paths, edge_paths = collect_all_kg_paths(data_dir_path)
 
         duckdb_merge(
             node_paths,
@@ -144,6 +152,23 @@ def merge(
         )
         # duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
     else:
+        if not yaml:
+            merge_kg_object.merged_graph.operations = Operations(
+                name="merged-kg-tsv",
+                args={
+                    "graph_name": "merged-kg",
+                    "filename": f"{MERGED_GRAPH_STATS_FILE}",
+                    "node_facet_properties": ["provided_by"],
+                    "edge_facet_properties": ["provided_by", "source"],
+                },
+            )
+            merge_kg_object.merged_graph.destination = Destination(
+                format="tsv", compression="tar.gz", filename="merged_kg"
+            )
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".yaml") as tmp_file:
+                yaml.dump(merge_kg_object, tmp_file, Dumper=yaml_dumper)
+                print(f"Temporary file created at: {tmp_file.name}")
         load_and_merge(yaml, processes)
 
 

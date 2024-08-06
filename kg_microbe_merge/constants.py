@@ -27,3 +27,4 @@ PWD = Path.cwd().resolve()
 DATA_DIR = PWD / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 MERGED_DATA_DIR = DATA_DIR / "merged"
+MERGED_GRAPH_STATS_FILE = MERGED_DATA_DIR / "merged_graph_stats.yaml"

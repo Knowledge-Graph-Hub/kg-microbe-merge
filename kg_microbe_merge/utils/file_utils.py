@@ -2,10 +2,11 @@
 
 # Given a path to a directory, look for all files with the extension tar.zip and unzip them all
 import tarfile
+from collections import defaultdict
 from pathlib import Path
-from typing import List, Union
+from typing import List, Tuple, Union
 
-from click import Tuple
+from kg_microbe_merge.schema.merge_datamodel import InputFiles, MergedGraph, SourceGraph
 
 
 def unzip_files_in_dir(dir_path: Union[str, Path]) -> None:
@@ -45,7 +46,11 @@ def tarball_files_in_dir(dir_path: Union[str, Path], filename: str) -> None:
 
 
 def collect_paths_from_directory(
-    directory: Path, node_paths: List[Path], edge_paths: List[Path]
+    directory: Path,
+    node_paths: List[Path],
+    edge_paths: List[Path],
+    merged_graph_object: MergedGraph,
+    ontology_transforms: set[str] = None,
 ) -> None:
     """
     Collect node and edge paths from a given directory.
@@ -55,12 +60,31 @@ def collect_paths_from_directory(
     :param edge_paths: List of edge paths.
     :return: None
     """
-    for file in directory.iterdir():
+    nodes_edges_path_collecter = defaultdict(list)
+    source_graph_object_list = []
+    if ontology_transforms:
+        files_of_interest = [
+            file
+            for file in directory.iterdir()
+            if any(transform in file.name.lower() for transform in ontology_transforms) and not file.name.startswith("._")
+        ]
+
+    else:
+        files_of_interest = [file for file in directory.iterdir() if not file.name.startswith("._")]
+
+    for file in files_of_interest:
         if file.is_file() and file.suffix == ".tsv" and not file.name.startswith("._"):
             if "nodes" in file.name:
                 node_paths.append(file)
             elif "edges" in file.name:
                 edge_paths.append(file)
+            nodes_edges_path_collecter[file.stem.split("_")[0]].append(file)
+
+    source_graph_object_list = [
+        SourceGraph(name=key, input=InputFiles(format="tsv", filename=value))
+        for key, value in nodes_edges_path_collecter.items()
+    ]
+    merged_graph_object.source.extend(source_graph_object_list)
 
 
 def collect_subset_kg_paths(
@@ -75,6 +99,10 @@ def collect_subset_kg_paths(
     """
     node_paths = []
     edge_paths = []
+    merged_graph_object = MergedGraph(
+        name="merged_kg",
+    )
+
     transforms_lower = {transform.strip().lower() for transform in subset_transforms[0].split(",")}
     transform_dirs = [
         dir
@@ -84,14 +112,23 @@ def collect_subset_kg_paths(
     ontology_transforms = transforms_lower - {dir.name.lower() for dir in transform_dirs}
 
     for directory in transform_dirs:
-        node_paths.append(directory / "nodes.tsv")
-        edge_paths.append(directory / "edges.tsv")
+        node_path = directory / "nodes.tsv"
+        edge_path = directory / "edges.tsv"
+        source_graph_object = SourceGraph(
+            name=directory.name,
+            input=InputFiles(format="tsv", filename=[node_path, edge_path]),
+        )
+        merged_graph_object.source.append(source_graph_object)
+        node_paths.append(node_path)
+        edge_paths.append(edge_path)
 
     if ontology_transforms:
         ontology_dir = data_dir_path / "ontologies"
-        collect_paths_from_directory(ontology_dir, node_paths, edge_paths)
+        collect_paths_from_directory(
+            ontology_dir, node_paths, edge_paths, merged_graph_object, ontology_transforms
+        )
 
-    return node_paths, edge_paths
+    return node_paths, edge_paths, merged_graph_object
 
 
 def collect_all_kg_paths(data_dir_path: Path) -> Tuple[List[Path], List[Path]]:
@@ -103,12 +140,22 @@ def collect_all_kg_paths(data_dir_path: Path) -> Tuple[List[Path], List[Path]]:
     """
     node_paths = []
     edge_paths = []
+    merged_graph_object = MergedGraph(
+        name="merged_kg",
+    )
     for directory in data_dir_path.iterdir():
         if directory.is_dir():
             if directory.name != "ontologies":
-                node_paths.append(directory / "nodes.tsv")
-                edge_paths.append(directory / "edges.tsv")
+                node_path = directory / "nodes.tsv"
+                edge_path = directory / "edges.tsv"
+                node_paths.append(node_path)
+                edge_paths.append(edge_path)
+                source_graph_object = SourceGraph(
+                    name=directory.name,
+                    input=InputFiles(format="tsv", filename=[node_path, edge_path]),
+                )
+                merged_graph_object.source.append(source_graph_object)
             else:
-                collect_paths_from_directory(directory, node_paths, edge_paths)
+                collect_paths_from_directory(directory, node_path, edge_paths, merged_graph_object)
 
-    return node_paths, edge_paths
+    return node_path, edge_paths, merged_graph_object

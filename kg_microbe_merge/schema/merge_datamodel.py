@@ -1,5 +1,5 @@
 # Auto generated from merge_schema.yaml by pythongen.py version: 0.0.1
-# Generation date: 2024-08-06T07:55:55
+# Generation date: 2024-08-06T10:34:23
 # Schema: KGMergeSchema
 #
 # id: http://example.org/kg-merge-schema
