@@ -66,7 +66,8 @@ def collect_paths_from_directory(
         files_of_interest = [
             file
             for file in directory.iterdir()
-            if any(transform in file.name.lower() for transform in ontology_transforms) and not file.name.startswith("._")
+            if any(transform in file.name.lower() for transform in ontology_transforms)
+            and not file.name.startswith("._")
         ]
 
     else:

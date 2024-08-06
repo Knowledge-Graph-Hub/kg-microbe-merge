@@ -1,9 +1,9 @@
 """Drive KG download, transform, merge steps."""
 
 import os
+import tempfile
 from pathlib import Path
 from pprint import pprint
-import tempfile
 from typing import Union
 
 import click
