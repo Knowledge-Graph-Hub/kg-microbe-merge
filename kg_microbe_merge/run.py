@@ -1,9 +1,9 @@
 """Drive KG download, transform, merge steps."""
 
 import os
-import tempfile
 from pathlib import Path
 from pprint import pprint
+import tempfile
 from typing import Union
 
 import click
@@ -165,11 +165,15 @@ def merge(
             merge_kg_object.merged_graph.destination = Destination(
                 format="tsv", compression="tar.gz", filename="merged_kg"
             )
-
+            # yaml = "tmp.yaml"
+            # yaml_dumper.dump(merge_kg_object, yaml)
             with tempfile.NamedTemporaryFile(delete=False, suffix=".yaml") as tmp_file:
-                yaml.dump(merge_kg_object, tmp_file, Dumper=yaml_dumper)
-                print(f"Temporary file created at: {tmp_file.name}")
-        load_and_merge(yaml, processes)
+                tmp_file_path = tmp_file.name
+                yaml_dumper.dump(merge_kg_object, tmp_file_path)
+                
+                print(f"Temporary file created at: {tmp_file_path}")
+        load_and_merge(tmp_file_path, processes)
+        os.remove(tmp_file_path)
 
 
 @main.command()
