@@ -44,7 +44,6 @@ classes:
       source:
         description: Source graphs to be merged
         multivalued: true
-        inlined_as_list: true
         range: SourceGraph
       operations:
         description: Operations to perform on the merged graph
