@@ -1,0 +1,53 @@
+configuration:
+  output_directory: data/merged
+  checkpoint: false
+  curie_map:
+    # define non-canonical CURIE to IRI mappings (for RDF)
+  node_properties:
+    # define predicates that are to be treated as direct node properties (for RDF)
+  predicate_mappings:
+    # map non-canonical predicates to a property name (for RDF)
+  property_types:
+    # define the type for non-canonical properties for RDF export
+
+merged_graph:
+  name: kg-microbe graph
+  source:
+    - name: "NCBITaxon"
+      input:
+        format: tsv
+        filename:
+          - data/transformed/ontologies/ncbitaxon_nodes.tsv
+          - data/transformed/ontologies/ncbitaxon_edges.tsv
+    - name: "CHEBI"
+      input:
+        format: tsv
+        filename:
+          - data/transformed/ontologies/chebi_nodes.tsv
+          - data/transformed/ontologies/chebi_edges.tsv
+    - name: "ENVO"
+      input:
+        format: tsv
+        filename:
+          - data/transformed/ontologies/envo_nodes.tsv
+          - data/transformed/ontologies/envo_edges.tsv
+    - name: "GO"
+      input:
+        format: tsv
+        filename:
+          - data/transformed/ontologies/go_nodes.tsv
+          - data/transformed/ontologies/go_edges.tsv
+  operations:
+    - name: kgx.graph_operations.summarize_graph.generate_graph_stats
+      args:
+        graph_name: kg-microbe graph
+        filename: merged_graph_stats.yaml
+        node_facet_properties:
+          - provided_by
+        edge_facet_properties:
+          - provided_by
+          - source
+  destination:
+    - format: tsv
+      compression: tar.gz
+      filename: merged-kg
