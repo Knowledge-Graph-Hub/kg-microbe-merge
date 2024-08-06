@@ -45,6 +45,7 @@ classes:
         description: Source graphs to be merged
         multivalued: true
         range: SourceGraph
+        inlined_as_list: true
       operations:
         description: Operations to perform on the merged graph
         range: Operations
@@ -64,7 +65,7 @@ classes:
       input:
         description: Input files for the source graph
         range: InputFiles
-  
+
   InputFiles:
     description: Input files for the source graph
     attributes:
@@ -73,7 +74,6 @@ classes:
       filename:
         description: List of filenames for the input files
         multivalued: true
-        inlined_as_list: true
 
   Operations:
     description: Details of an operation to perform on the merged graph
@@ -94,11 +94,9 @@ classes:
       node_facet_properties:
         description: List of node facet properties
         multivalued: true
-        inlined_as_list: true
       edge_facet_properties:
         description: List of edge facet properties
         multivalued: true
-        inlined_as_list: true
 
   Destination:
     description: Details of a destination for the merged graph
