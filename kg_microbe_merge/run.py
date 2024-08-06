@@ -8,7 +8,11 @@ from typing import Union
 import click
 
 from kg_microbe_merge.constants import MERGED_DATA_DIR, RAW_DATA_DIR
-from kg_microbe_merge.utils.file_utils import unzip_files_in_dir
+from kg_microbe_merge.utils.file_utils import (
+    collect_all_kg_paths,
+    collect_subset_kg_paths,
+    unzip_files_in_dir,
+)
 
 try:
     from kg_chat.app import create_app
@@ -98,7 +102,7 @@ def merge(
     processes: int,
     merge_tool: str,
     data_dir: str,
-    subset_transforms: list,
+    subset_transforms: tuple,
     nodes_batch_size: int,
     edges_batch_size: int,
     # base_nodes: str,
@@ -126,46 +130,9 @@ def merge(
         edge_paths = []
 
         if subset_transforms:
-            transforms_lower = {
-                transform.strip().lower() for transform in subset_transforms[0].split(",")
-            }
-            transform_dirs = [
-                dir
-                for dir in data_dir_path.iterdir()
-                if dir.is_dir() and dir.name.lower() in transforms_lower
-            ]
-            ontology_transforms = transforms_lower - {dir.name.lower() for dir in transform_dirs}
-
-            for directory in transform_dirs:
-                node_paths.append(directory / "nodes.tsv")
-                edge_paths.append(directory / "edges.tsv")
-
-            if ontology_transforms:
-                ontology_dir = data_dir_path / "ontologies"
-                for file in ontology_dir.iterdir():
-                    if file.is_file() and file.suffix == ".tsv" and not file.name.startswith("._"):
-                        if any(transform in file.name.lower() for transform in ontology_transforms):
-                            if "nodes" in file.name:
-                                node_paths.append(file)
-                            elif "edges" in file.name:
-                                edge_paths.append(file)
+            node_paths, edge_paths = collect_subset_kg_paths(subset_transforms, data_dir_path)
         else:
-            for directory in data_dir_path.iterdir():
-                if directory.is_dir():
-                    if directory.name != "ontologies":
-                        node_paths.append(directory / "nodes.tsv")
-                        edge_paths.append(directory / "edges.tsv")
-                    else:
-                        for file in directory.iterdir():
-                            if (
-                                file.is_file()
-                                and file.suffix == ".tsv"
-                                and not file.name.startswith("._")
-                            ):
-                                if "nodes" in file.name:
-                                    node_paths.append(file)
-                                elif "edges" in file.name:
-                                    edge_paths.append(file)
+            node_paths, edge_paths = collect_all_kg_paths(data_dir_path)
 
         duckdb_merge(
             node_paths,

@@ -5,111 +5,108 @@ prefixes:
   linkml: https://w3id.org/linkml/
 imports:
   - linkml:types
+
 default_range: string
 
 classes:
+  MergeKG:
+    description: Configuration for merging knowledge graphs
+    tree_root: true
+    attributes:
+      configuration:
+        description: Configuration for the merge operation
+        range: Configuration
+      merged_graph:
+        description: Details about graphs to be merged.
+        range: MergedGraph
+
   Configuration:
-    description: Configuration settings for the merged graph.
+    description: Configuration for the merge operation
     attributes:
       output_directory:
-        description: Directory where the output will be stored.
-
+        description: Directory to write output files
       checkpoint:
-        description: Whether to use checkpoints.
-        range: boolean
-
-  Source:
-    description: Source information for the graphs.
-    attributes:
-      name:
-        description: Name of the source.
-        
-      input:
-        description: Input details for the source.
-        range: Input
-
-  Input:
-    description: Input file details.
-    attributes:
-      format:
-        description: Format of the input file.
-        
-      filename:
-        description: List of filenames for the input files.
-        multivalued: true
-    
-
-  Operation:
-    description: Operations to be performed on the graph.
-    attributes:
-      name:
-        description: Name of the operation.
-        
-      args:
-        description: Arguments for the operation.
-        range: Args
-
-  Args:
-    description: Arguments for operations.
-    attributes:
-      graph_name:
-        description: Name of the graph.
-        
-      filename:
-        description: Filename for the output.
-        
-      node_facet_properties:
-        description: Node facet properties.
-        multivalued: true
-      edge_facet_properties:
-        description: Edge facet properties.
-        multivalued: true
-    
-
-  Destination:
-    description: Destination details for the merged graph.
-    attributes:
-      format:
-        description: Format of the output file.
-        
-      compression:
-        description: Compression type for the output file.
-        
-      filename:
-        description: Filename for the output file.
-        
+        description: Whether to checkpoint intermediate results
+      curie_map:
+        description: Mapping of CURIE prefixes to base IRIs
+      node_properties:
+        description: List of node properties to include in the merged graph
+      predicate_mappings:
+        description: Mapping of predicates to use in the merged graph
+      property_types:
+        description: Mapping of property types to use in the merged graph
 
   MergedGraph:
-    description: Details of the merged graph.
+    description: Details about graphs to be merged.
     attributes:
       name:
-        description: Name of the merged graph.
-        
+        description: Name of the merged graph
       source:
-        description: Source graphs.
-        range: Source
+        description: Source graphs to be merged
         multivalued: true
+        inlined_as_list: true
+        range: SourceGraph
       operations:
-        description: Operations to be performed on the graph.
-        range: Operation
+        description: Operations to perform on the merged graph
+        range: Operations
         multivalued: true
+        inlined_as_list: true
       destination:
-        description: Destination details for the merged graph.
+        description: Destination for the merged graph
         range: Destination
         multivalued: true
+        inlined_as_list: true
 
-slots:
-  output_directory:
-  checkpoint:
-  name:
-  input:
-  format:
-  filename:
-  source:
-  operations:
-  destination:
-  graph_name:
-  node_facet_properties:
-  edge_facet_properties:
-  compression:
+  SourceGraph:
+    description: Details of a source graph to be merged
+    attributes:
+      name:
+        description: Name of the source graph
+      input:
+        description: Input files for the source graph
+        range: InputFiles
+  
+  InputFiles:
+    description: Input files for the source graph
+    attributes:
+      format:
+        description: Format of the input files
+      filename:
+        description: List of filenames for the input files
+        multivalued: true
+        inlined_as_list: true
 
+  Operations:
+    description: Details of an operation to perform on the merged graph
+    attributes:
+      name:
+        description: Name of the operation
+      args:
+        description: Arguments for the operation
+        range: OperationArgs
+
+  OperationArgs:
+    description: Arguments for an operation
+    attributes:
+      graph_name:
+        description: Name of the graph
+      filename:
+        description: Filename for the output
+      node_facet_properties:
+        description: List of node facet properties
+        multivalued: true
+        inlined_as_list: true
+      edge_facet_properties:
+        description: List of edge facet properties
+        multivalued: true
+        inlined_as_list: true
+
+  Destination:
+    description: Details of a destination for the merged graph
+    attributes:
+      format:
+        description: Format of the destination
+      compression:
+        description: Compression format for the destination
+      filename:
+        description: Filename for the destination
