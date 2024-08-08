@@ -10,11 +10,12 @@ readme = "README.md"
 python = "^3.9"
 click = ">=8.1.7"
 importlib-metadata = ">=8.2.0"
-kghub-downloader = ">=0.3.8"
+kghub-downloader = "^0.3.9"
 kgx = ">=2.4.2"
 koza = ">=0.6.0"
 biolink-model = ">=4.2.1"
 requests-cache = ">=1.2.1"
+linkml = "^1.8.1"
 sphinx = {version = "^7.4.7", extras = ["docs"], optional = true }
 sphinx-rtd-theme = {version = "^2.0.0", extras = ["docs"], optional = true }
 sphinx-autodoc-typehints = {version = "^2.2.3", extras = ["docs"], optional = true }
@@ -48,6 +49,8 @@ target-version = ["py38", "py39", "py310"]
 lint.extend-ignore = [
     "D211",  # `no-blank-line-before-class`
     "D212",  # `multi-line-summary-first-line`
+    "S608" , # Possible SQL injection vector through string-based query construction"
+    "S202",  # Uses of `tarfile.extractall()`
     ]
 line-length = 120
 

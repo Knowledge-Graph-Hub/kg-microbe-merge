@@ -20,25 +20,28 @@
 ---
 
 # **** Ontology files ****
-#
-# ENVO
-#
--
-  url: http://purl.obolibrary.org/obo/envo.json
-  local_name: envo.json
-#
-# HP
-#
--
-  url: http://purl.obolibrary.org/obo/hp.json
-  local_name: hp.json
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/ontologies.tar.gz
+  local_name: ontologies.tar.gz
 
 # **** Data sources ****
 #
 # KG-Microbe [BacDive]
-# - 
-#   url: https://github.com/Knowledge-Graph-Hub/kg-microbe/releases/download/2024-07-26-rc2/BacDive.tar.gz
-#   local_name: kg_microbe_2021-10-01.ttl
+# 
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/BacDive.tar.gz
+  local_name: BacDive.tar.gz
 
-# - 
-#   url: 
+#
+# KG-Microbe [BactoTraits]
+# 
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/BactoTraits.tar.gz
+  local_name: BactoTraits.tar.gz
+
+#
+# KG-Microbe [MediaDive]
+# 
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/MediaDive.tar.gz
+  local_name: MediaDive.tar.gz

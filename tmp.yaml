@@ -1,0 +1,44 @@
+configuration:
+  output_directory: /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/merged
+  checkpoint: 'False'
+merged_graph:
+  name: merged_kg
+  source:
+  - name: BactoTraits
+    input:
+      format: tsv
+      filename:
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/BactoTraits/nodes.tsv
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/BactoTraits/edges.tsv
+  - name: BacDive
+    input:
+      format: tsv
+      filename:
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/BacDive/nodes.tsv
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/BacDive/edges.tsv
+  - name: ncbitaxon
+    input:
+      format: tsv
+      filename:
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/ontologies/ncbitaxon_edges.tsv
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/ontologies/ncbitaxon_nodes.tsv
+  - name: chebi
+    input:
+      format: tsv
+      filename:
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/ontologies/chebi_edges.tsv
+      - /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/raw/ontologies/chebi_nodes.tsv
+  operations:
+    name: merged-kg-tsv
+    args:
+      graph_name: merged-kg
+      filename: /Users/HHegde/Desktop/gitRepo/Knowledge-Graph-Hub/kg-microbe-merge/data/merged/merged_graph_stats.yaml
+      node_facet_properties:
+      - provided_by
+      edge_facet_properties:
+      - provided_by
+      - source
+  destination:
+    format: tsv
+    compression: tar.gz
+    filename: merged_kg

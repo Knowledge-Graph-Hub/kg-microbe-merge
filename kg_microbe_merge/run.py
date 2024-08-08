@@ -1,11 +1,22 @@
 """Drive KG download, transform, merge steps."""
 
 import os
+import tempfile
 from pathlib import Path
 from pprint import pprint
 from typing import Union
 
 import click
+from linkml_runtime.dumpers import yaml_dumper
+
+from kg_microbe_merge.constants import MERGED_DATA_DIR, MERGED_GRAPH_STATS_FILE, RAW_DATA_DIR
+from kg_microbe_merge.schema.merge_datamodel import Configuration, Destination, MergeKG, Operations
+from kg_microbe_merge.utils.file_utils import (
+    collect_all_kg_paths,
+    collect_subset_kg_paths,
+    unzip_files_in_dir,
+)
+
 try:
     from kg_chat.app import create_app
     from kg_chat.implementations import DuckDBImplementation, Neo4jImplementation
@@ -18,10 +29,8 @@ except ImportError:
     KnowledgeGraphChat = None
 
 from kg_microbe_merge import download as kg_download
-from kg_microbe_merge.merge_utils.merge_kg import load_and_merge
+from kg_microbe_merge.merge import duckdb_merge, load_and_merge
 from kg_microbe_merge.query import parse_query_yaml, result_dict_to_tsv, run_query
-from kg_microbe_merge.transform import DATA_SOURCES
-from kg_microbe_merge.transform import transform as kg_transform
 
 database_options = click.option(
     "--database",
@@ -36,6 +45,7 @@ data_dir_option = click.option(
     help="Directory containing the data.",
     required=True,
 )
+
 
 @click.group()
 def main():
@@ -73,42 +83,100 @@ def download(*args, **kwargs) -> None:
     :param ignore_cache: If specified, will ignore existing files and download again.
     :return: None
     """
+    Path(RAW_DATA_DIR).mkdir(parents=True, exist_ok=True)
     kg_download(*args, **kwargs)
 
     return None
 
 
 @main.command()
-@click.option("input_dir", "-i", default="data/raw", type=click.Path(exists=True))
-@click.option("output_dir", "-o", default="data/transformed")
-@click.option("sources", "-s", default=None, multiple=True, type=click.Choice(DATA_SOURCES.keys()))
-def transform(*args, **kwargs) -> None:
-    """
-    Call project_name/transform/[source name]/ for node & edge transforms.
-
-    :param input_dir: A string pointing to the directory to import data from.
-    :param output_dir: A string pointing to the directory to output data to.
-    :param sources: A list of sources to transform.
-    :return: None
-    """
-    # call transform script for each source
-    kg_transform(*args, **kwargs)
-
-    return None
-
-
-@main.command()
-@click.option("yaml", "-y", default="merge.yaml", type=click.Path(exists=True))
+@click.option("yaml", "-y", type=click.Path(exists=True), required=False)
 @click.option("processes", "-p", default=1, type=int)
-def merge(yaml: str, processes: int) -> None:
+@click.option("--merge-tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
+# @click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
+# @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
+# @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
+# @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
+@click.option("--data-dir", "-d", type=click.Path(exists=True), default=RAW_DATA_DIR)
+@click.option("--subset-transforms", "-s", multiple=True)
+@click.option("--nodes-batch-size", "-n", type=int, default=100000)
+@click.option("--edges-batch-size", "-e", type=int, default=2000000)
+def merge(
+    yaml: str,
+    processes: int,
+    merge_tool: str,
+    data_dir: str,
+    subset_transforms: tuple,
+    nodes_batch_size: int,
+    edges_batch_size: int,
+    # base_nodes: str,
+    # base_edges: str,
+    # subset_nodes: str,
+    # subset_edges: str,
+) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
 
-    :param yaml: A string pointing to a KGX compatible config YAML.
+    :param yaml: A YAML file containing a list of datasets to load.
     :param processes: Number of processes to use.
-    :return: None
+    :param merge_tool: The tool to use for merging.
+    :param data_dir: The directory containing the data.
+    :param transforms: The transforms to apply.
+    :param nodes_batch_size: The batch size for nodes.
+    :param edges_batch_size: The batch size for edges.
+    :return: None.
     """
-    load_and_merge(yaml, processes)
+    # make dir if not exists: MERGED_DATA_DIR
+    Path(MERGED_DATA_DIR).mkdir(parents=True, exist_ok=True)
+    data_dir_path = Path(data_dir)
+    unzip_files_in_dir(data_dir_path)
+    node_paths = []
+    edge_paths = []
+    merge_configuration = Configuration(output_directory=MERGED_DATA_DIR, checkpoint=False)
+    merge_kg_object = MergeKG(configuration=merge_configuration)
+
+    if subset_transforms:
+        node_paths, edge_paths, merged_graph_object = collect_subset_kg_paths(
+            subset_transforms, data_dir_path
+        )
+    else:
+        node_paths, edge_paths, merged_graph_object = collect_all_kg_paths(data_dir_path)
+
+    merge_kg_object.merged_graph = merged_graph_object
+    if merge_tool == "duckdb":
+
+        duckdb_merge(
+            node_paths,
+            edge_paths,
+            MERGED_DATA_DIR / "nodes.tsv",
+            MERGED_DATA_DIR / "edges.tsv",
+            nodes_batch_size,
+            edges_batch_size,
+        )
+        # duckdb_merge(base_nodes, subset_nodes, base_edges, subset_edges)
+    else:
+        if not yaml:
+            merge_kg_object.merged_graph.operations = Operations(
+                name="merged-kg-tsv",
+                args={
+                    "graph_name": "merged-kg",
+                    "filename": f"{MERGED_GRAPH_STATS_FILE}",
+                    "node_facet_properties": ["provided_by"],
+                    "edge_facet_properties": ["provided_by", "source"],
+                },
+            )
+            merge_kg_object.merged_graph.destination = Destination(
+                format="tsv", compression="tar.gz", filename="merged_kg"
+            )
+            # yaml = "tmp.yaml"
+            # yaml_dumper.dump(merge_kg_object, yaml)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".yaml") as tmp_file:
+                tmp_file_path = tmp_file.name
+                yaml_dumper.dump(merge_kg_object, tmp_file_path)
+
+                print(f"Temporary file created at: {tmp_file_path}")
+        load_and_merge(tmp_file_path, processes)
+        os.remove(tmp_file_path)
 
 
 @main.command()
@@ -202,18 +270,21 @@ def holdouts(*args, **kwargs) -> None:
 
     """
     # make_holdouts(*args, **kwargs)
-    pass
+    raise NotImplementedError("This function is not yet implemented.")
+
 
 if create_app:
     # ! kg-chat must be installed for these CLI commands to work.
-    
+
     @main.command("import")
     @database_options
     @data_dir_option
     def import_kg_click(database: str = "duckdb", data_dir: str = None):
         """Run the kg-chat's demo command."""
         if not data_dir:
-            raise ValueError("Data directory is required. This typically contains the KGX tsv files.")
+            raise ValueError(
+                "Data directory is required. This typically contains the KGX tsv files."
+            )
         if database == "neo4j":
             impl = Neo4jImplementation(data_dir=data_dir)
             impl.load_kg()
@@ -271,7 +342,7 @@ if create_app:
             kgc = KnowledgeGraphChat(impl)
         else:
             raise ValueError(f"Database {database} not supported.")
-        
+
         app = create_app(kgc)
         # use_reloader=False to avoid running the app twice in debug mode
         app.run(debug=debug, use_reloader=False)

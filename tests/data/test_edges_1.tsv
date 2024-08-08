@@ -1,0 +1,7 @@
+subject	predicate	object	relation	knowledge_source
+RHEA:10000	biolink:has_participant	CHEBI:15377	RO:0000057	RheaViaPyObo
+RHEA:10000	biolink:has_participant	CHEBI:16459	RO:0000057	RheaViaPyObo
+RHEA:10000	biolink:has_participant	CHEBI:28938	RO:0000057	RheaViaPyObo
+CHEBI:16134	biolink:related_to	CHEBI:28938	OBO:chebi#is_conjugate_base_of	chebi.json
+CHEBI:16234	biolink:related_to	CHEBI:15377	OBO:chebi#is_conjugate_base_of	chebi.json
+NCBITaxon:1000003	biolink:subclass_of	NCBITaxon:2637762	rdfs:subClassOf	test.json
