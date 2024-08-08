@@ -83,6 +83,7 @@ def download(*args, **kwargs) -> None:
     :param ignore_cache: If specified, will ignore existing files and download again.
     :return: None
     """
+    Path(RAW_DATA_DIR).mkdir(parents=True, exist_ok=True)
     kg_download(*args, **kwargs)
 
     return None
@@ -125,6 +126,8 @@ def merge(
     :param edges_batch_size: The batch size for edges.
     :return: None.
     """
+    # make dir if not exists: MERGED_DATA_DIR
+    Path(MERGED_DATA_DIR).mkdir(parents=True, exist_ok=True)
     data_dir_path = Path(data_dir)
     unzip_files_in_dir(data_dir_path)
     node_paths = []
