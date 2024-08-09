@@ -157,6 +157,6 @@ def collect_all_kg_paths(data_dir_path: Path) -> Tuple[List[Path], List[Path]]:
                 )
                 merged_graph_object.source.append(source_graph_object)
             else:
-                collect_paths_from_directory(directory, node_path, edge_paths, merged_graph_object)
+                collect_paths_from_directory(directory, node_paths, edge_paths, merged_graph_object)
 
     return node_path, edge_paths, merged_graph_object
