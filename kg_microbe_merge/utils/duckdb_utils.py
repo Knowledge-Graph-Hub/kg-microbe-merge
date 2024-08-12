@@ -388,7 +388,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=2000000):
     :param output_file: Path to the output file.
     """
     # Create a DuckDB connection
-    conn = duckdb.connect(":memory:")
+    conn = duckdb.connect("edges.db")
 
     # Load the files into DuckDB, excluding the 'id' column
     load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
@@ -491,3 +491,4 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=2000000):
     finally:
         # Close the connection
         conn.close()
+        os.remove("edges.db")
