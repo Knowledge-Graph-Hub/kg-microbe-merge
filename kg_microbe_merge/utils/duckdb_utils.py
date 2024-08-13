@@ -395,61 +395,71 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=2000000):
     load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
 
     """
-    Detailed Explanation:
+        Detailed Explanation:
 
-    1. Query Construction:
-       - The initial part of the code constructs a SQL query to merge edges from the `combined_edges` table.
-       - It uses two Common Table Expressions (CTEs):
-         - `columns`: Retrieves all column names from the `combined_edges` table.
-         - `agg_columns`: Constructs aggregation expressions for each column.
-            For `subject`, `predicate`, and `object`, it keeps them as is. For other columns,
-            it creates a `string_agg` expression to concatenate distinct values with a delimiter.
+        1. Column Information Retrieval:
+        - The function retrieves column names from the combined_edges table using SQL.
+        - This information is used to dynamically construct the aggregation query.
 
-    2. Final Query Generation:
-       - The final query string is constructed by concatenating the aggregation expressions and grouping by
-        `subject`, `predicate`, and `object`.
+        2. Query Construction:
+        - Aggregation expressions are built for each column:
+            - For 'subject', 'predicate', and 'object', they are kept as is with a 'ce.' prefix.
+            - For other columns, a string_agg expression is created to concatenate distinct values.
+        - These expressions are joined into a single string for use in the SQL query.
 
-    3. Execution and Batch Processing:
-       - The constructed query is executed to get the final query string (`agg_expressions`).
-       - The total number of unique edges is fetched from the `combined_edges` table.
-       - The edges are processed in batches using a loop. For each batch:
-         - A batch-specific query is constructed to select distinct edges with a limit and offset.
-         - The batch query is executed, and the results are either printed (for the first batch) or
-            appended to an output file.
+        3. Batch Processing:
+        - The total number of edges is determined.
+        - Edges are processed in batches to handle large datasets efficiently.
+        - For each batch:
+            - A batch-specific query is constructed using a CTE (Common Table Expression).
+            - The batch query selects distinct edges and joins them with the full dataset.
+            - Results are grouped and ordered by subject, predicate, and object.
 
-    4. Error Handling:
-       - If any error occurs during the execution, it is caught, and an error message along with
-        the generated query is printed.
+        4. Data Writing:
+        - For the first batch, the query is printed for debugging and results are written to the output file.
+        - For subsequent batches, results are appended to the output file.
+        - Progress is printed after each batch.
 
-    5. Connection Closure:
-       - Finally, the database connection is closed to ensure no resources are leaked.
+        5. Error Handling:
+        - Any DuckDB errors are caught and reported, along with the generated query for debugging.
+
+        6. Resource Management:
+        - The database connection is properly closed in the 'finally' block.
+        - The temporary database file is removed after processing.
+
+        This approach allows for efficient processing of large edge datasets by using batch processing
+        and constructing the query dynamically based on the table structure. It handles potential memory
+        issues by processing data in manageable chunks.
     """
-    try:
-        # Construct the query to merge the edges
-        query = """
-        WITH columns AS (
-            SELECT column_name
-            FROM information_schema.columns
-            WHERE table_name = 'combined_edges'
-        ),
-        agg_columns AS (
-            SELECT
-                CASE
-                    WHEN column_name IN ('subject', 'predicate', 'object') THEN column_name
-                    ELSE 'string_agg(DISTINCT ' || column_name || ', ''|'' ORDER BY ' || column_name || ')
-                      AS ' || column_name
-                END AS agg_expr
-            FROM columns
-        )
-        SELECT
-            'SELECT ' || string_agg(agg_expr, ', ') ||
-            ' FROM combined_edges GROUP BY subject, predicate,
-              object ORDER BY subject, predicate, object' AS final_query
-        FROM agg_columns
-        """
 
-        # Execute the query to get the final query string
-        agg_expressions = conn.execute(query).fetchone()[0]
+    try:
+        # Get column names
+        columns = conn.execute(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"
+        ).fetchall()
+
+        # Construct aggregation expressions
+        # Construct aggregation expressions
+        agg_expressions = []
+        for column in columns:
+            column_name = column[0]
+            if column_name in ("subject", "predicate", "object"):
+                agg_expressions.append(f"ce.{column_name}")
+            else:
+                agg_expressions.append(
+                    f"string_agg(DISTINCT ce.{column_name}, '|' ORDER BY ce.{column_name}) AS {column_name}"
+                )
+
+        # Join expressions into a single string
+        agg_expressions_str = ", ".join(agg_expressions)
+
+        # Construct the final query
+        query = f"""
+        SELECT {agg_expressions_str}
+        FROM combined_edges
+        GROUP BY subject, predicate, object
+        ORDER BY subject, predicate, object
+        """
 
         # Get total number of unique edges
         total_edges = conn.execute("SELECT COUNT(*) FROM combined_edges").fetchone()[0]
@@ -463,7 +473,14 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=2000000):
                 ORDER BY subject, predicate, object
                 LIMIT {batch_size} OFFSET {offset}
             )
-            {agg_expressions}
+            SELECT {agg_expressions_str}
+            FROM combined_edges ce
+            INNER JOIN batch_edges be
+                ON ce.subject = be.subject
+                AND ce.predicate = be.predicate
+                AND ce.object = be.object
+            GROUP BY ce.subject, ce.predicate, ce.object
+            ORDER BY ce.subject, ce.predicate, ce.object
             """
 
             # Print the generated SQL for debugging
