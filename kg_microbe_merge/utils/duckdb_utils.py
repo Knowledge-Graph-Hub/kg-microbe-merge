@@ -433,7 +433,6 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
         # ).fetchall()
         # column_names = [col[0] for col in columns]
 
-
         # Create a temporary table for storing intermediate results
         conn.execute(
             """
