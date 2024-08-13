@@ -1,13 +1,13 @@
-subject	predicate	object	relation	knowledge_source
-CHEBI:16134	biolink:related_to	CHEBI:28938	OBO:chebi#is_conjugate_base_of	chebi.json
-CHEBI:16234	biolink:related_to	CHEBI:15377	OBO:chebi#is_conjugate_base_of	chebi.json
-NCBITaxon:10	biolink:subclass_of	NCBITaxon:1706371	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:100	biolink:subclass_of	NCBITaxon:99	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:100000	biolink:subclass_of	NCBITaxon:2624150	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:1000000	biolink:subclass_of	NCBITaxon:2609290	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:1000001	biolink:subclass_of	NCBITaxon:2642494	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:1000002	biolink:subclass_of	NCBITaxon:2642494	rdfs:subClassOf	ncbitaxon_removed_subset.json
-NCBITaxon:1000003	biolink:subclass_of	NCBITaxon:2637762	rdfs:subClassOf	ncbitaxon_removed_subset.json|test.json
-RHEA:10000	biolink:has_participant	CHEBI:15377	RO:0000057	RheaViaPyObo
-RHEA:10000	biolink:has_participant	CHEBI:16459	RO:0000057	RheaViaPyObo
-RHEA:10000	biolink:has_participant	CHEBI:28938	RO:0000057	RheaViaPyObo
+subject	predicate	object
+CHEBI:16134	biolink:related_to	CHEBI:28938
+CHEBI:16234	biolink:related_to	CHEBI:15377
+NCBITaxon:10	biolink:subclass_of	NCBITaxon:1706371
+NCBITaxon:100	biolink:subclass_of	NCBITaxon:99
+NCBITaxon:100000	biolink:subclass_of	NCBITaxon:2624150
+NCBITaxon:1000000	biolink:subclass_of	NCBITaxon:2609290
+NCBITaxon:1000001	biolink:subclass_of	NCBITaxon:2642494
+NCBITaxon:1000002	biolink:subclass_of	NCBITaxon:2642494
+NCBITaxon:1000003	biolink:subclass_of	NCBITaxon:2637762
+RHEA:10000	biolink:has_participant	CHEBI:15377
+RHEA:10000	biolink:has_participant	CHEBI:16459
+RHEA:10000	biolink:has_participant	CHEBI:28938

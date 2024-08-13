@@ -34,8 +34,8 @@ class TestDuckDBMerge(unittest.TestCase):
         """Clean up after test."""
         if os.path.exists(self.output_nodes_file):
             os.remove(self.output_nodes_file)
-        if os.path.exists(self.output_edges_file):
-            os.remove(self.output_edges_file)
+        # if os.path.exists(self.output_edges_file):
+        #     os.remove(self.output_edges_file)
 
     def test_nodes_merge(self):
         """Test nodes merge."""
