@@ -427,11 +427,12 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
         # Load the files into DuckDB, excluding the 'id' column
         load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
 
-        # Get column names
-        columns = conn.execute(
-            "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"
-        ).fetchall()
-        column_names = [col[0] for col in columns]
+        # # Get column names
+        # columns = conn.execute(
+        #     "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"
+        # ).fetchall()
+        # column_names = [col[0] for col in columns]
+
 
         # Create a temporary table for storing intermediate results
         conn.execute(
@@ -443,40 +444,41 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
         )
 
         # Process non-key columns in batches
-        for column in column_names:
-            if column not in ("subject", "predicate", "object"):
-                conn.execute(f"ALTER TABLE temp_edges ADD COLUMN {column} STRING")
+        # ! This approach is not efficient for large datasets and may run out of memory
+        # for column in column_names:
+        #     if column not in ("subject", "predicate", "object"):
+        #         conn.execute(f"ALTER TABLE temp_edges ADD COLUMN {column} STRING")
 
-                # Process in batches
-                offset = 0
-                while True:
-                    batch_update = conn.execute(
-                        f"""
-                        UPDATE temp_edges
-                        SET {column} = (
-                            SELECT string_agg(DISTINCT ce.{column}, '|' ORDER BY ce.{column})
-                            FROM (
-                                SELECT subject, predicate, object, {column}
-                                FROM combined_edges
-                                LIMIT {batch_size} OFFSET {offset}
-                            ) ce
-                            WHERE ce.subject = temp_edges.subject
-                              AND ce.predicate = temp_edges.predicate
-                              AND ce.object = temp_edges.object
-                        )
-                        WHERE temp_edges.rowid IN (
-                            SELECT rowid
-                            FROM temp_edges
-                            LIMIT {batch_size} OFFSET {offset}
-                        )
-                    """
-                    )
+        #         # Process in batches
+        #         offset = 0
+        #         while True:
+        #             batch_update = conn.execute(
+        #                 f"""
+        #                 UPDATE temp_edges
+        #                 SET {column} = (
+        #                     SELECT string_agg(DISTINCT ce.{column}, '|' ORDER BY ce.{column})
+        #                     FROM (
+        #                         SELECT subject, predicate, object, {column}
+        #                         FROM combined_edges
+        #                         LIMIT {batch_size} OFFSET {offset}
+        #                     ) ce
+        #                     WHERE ce.subject = temp_edges.subject
+        #                       AND ce.predicate = temp_edges.predicate
+        #                       AND ce.object = temp_edges.object
+        #                 )
+        #                 WHERE temp_edges.rowid IN (
+        #                     SELECT rowid
+        #                     FROM temp_edges
+        #                     LIMIT {batch_size} OFFSET {offset}
+        #                 )
+        #             """
+        #             )
 
-                    if batch_update.fetchone()[0] == 0:
-                        break
+        #             if batch_update.fetchone()[0] == 0:
+        #                 break
 
-                    offset += batch_size
-                    print(f"Processed {offset} rows for column {column}")
+        #             offset += batch_size
+        #             print(f"Processed {offset} rows for column {column}")
 
         # Write results to file in batches
         with open(output_file, "w") as f:
