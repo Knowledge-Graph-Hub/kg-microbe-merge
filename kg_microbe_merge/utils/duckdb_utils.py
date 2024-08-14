@@ -436,7 +436,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
         # Create a temporary table for storing intermediate results
         conn.execute(
             """
-            CREATE TABLE temp_edges AS
+            CREATE OR REPLACE TABLE temp_edges AS
             SELECT DISTINCT subject, predicate, object
             FROM combined_edges
         """
