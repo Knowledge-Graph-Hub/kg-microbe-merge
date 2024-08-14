@@ -422,7 +422,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
     try:
         # Enable memory-mapped storage for temporary tables
         conn.execute(f"PRAGMA temp_directory='{TMP_DIR}'")  # Store temp files in the same directory
-        conn.execute("PRAGMA memory_limit='4GB'")  # Adjust based on available system memory
+        # conn.execute("PRAGMA memory_limit='4GB'")  # Adjust based on available system memory
 
         # Load the files into DuckDB, excluding the 'id' column
         load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
