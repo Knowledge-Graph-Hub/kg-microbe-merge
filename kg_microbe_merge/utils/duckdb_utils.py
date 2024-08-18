@@ -422,93 +422,73 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
     try:
         # Enable memory-mapped storage for temporary tables
         conn.execute(f"PRAGMA temp_directory='{TMP_DIR}'")  # Store temp files in the same directory
-        # conn.execute("PRAGMA memory_limit='4GB'")  # Adjust based on available system memory
-
         # Load the files into DuckDB, excluding the 'id' column
         load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
-
-        # ! Commented because for now we don't care about colunms other than subject, predicate, and object.
-        # # Get column names
-        # columns = conn.execute(
-        #     "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"
-        # ).fetchall()
-        # column_names = [col[0] for col in columns]
-
-        # Create a temporary table for storing intermediate results
-        conn.execute(
-            """
-            CREATE OR REPLACE TABLE temp_edges AS
-            SELECT DISTINCT subject, predicate, object
-            FROM combined_edges
-        """
+        # Construct the query to merge the edges
+        query = """
+        WITH columns AS (
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_edges'
+        ),
+        agg_columns AS (
+            SELECT
+                CASE
+                    WHEN column_name IN ('subject', 'predicate', 'object') THEN column_name
+                    ELSE 'string_agg(DISTINCT ' || column_name || ', ''|'' ORDER BY ' || column_name || ')
+                      AS ' || column_name
+                END AS agg_expr
+            FROM columns
         )
+        SELECT
+            'SELECT ' || string_agg(agg_expr, ', ') ||
+            ' FROM combined_edges GROUP BY subject, predicate,
+              object ORDER BY subject, predicate, object' AS final_query
+        FROM agg_columns
+        """
 
-        # Process non-key columns in batches
-        # ! This approach is not efficient for large datasets and may run out of memory
-        # for column in column_names:
-        #     if column not in ("subject", "predicate", "object"):
-        #         conn.execute(f"ALTER TABLE temp_edges ADD COLUMN {column} STRING")
+        # Execute the query to get the final query string
+        agg_expressions = conn.execute(query).fetchone()[0]
 
-        #         # Process in batches
-        #         offset = 0
-        #         while True:
-        #             batch_update = conn.execute(
-        #                 f"""
-        #                 UPDATE temp_edges
-        #                 SET {column} = (
-        #                     SELECT string_agg(DISTINCT ce.{column}, '|' ORDER BY ce.{column})
-        #                     FROM (
-        #                         SELECT subject, predicate, object, {column}
-        #                         FROM combined_edges
-        #                         LIMIT {batch_size} OFFSET {offset}
-        #                     ) ce
-        #                     WHERE ce.subject = temp_edges.subject
-        #                       AND ce.predicate = temp_edges.predicate
-        #                       AND ce.object = temp_edges.object
-        #                 )
-        #                 WHERE temp_edges.rowid IN (
-        #                     SELECT rowid
-        #                     FROM temp_edges
-        #                     LIMIT {batch_size} OFFSET {offset}
-        #                 )
-        #             """
-        #             )
+        # Get total number of unique edges
+        total_edges = conn.execute("SELECT COUNT(*) FROM combined_edges").fetchone()[0]
 
-        #             if batch_update.fetchone()[0] == 0:
-        #                 break
+        # Process in batches
+        for offset in range(0, total_edges, batch_size):
+            batch_query = f"""
+            WITH batch_edges AS (
+                SELECT DISTINCT subject, predicate, object
+                FROM combined_edges
+                ORDER BY subject, predicate, object
+                LIMIT {batch_size} OFFSET {offset}
+            )
+            {agg_expressions}
+            """
 
-        #             offset += batch_size
-        #             print(f"Processed {offset} rows for column {column}")
+            # Print the generated SQL for debugging
+            if offset == 0:
+                print("Generated SQL query (for first batch):")
+                print(batch_query)
+                conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+            else:
+                batch_data = conn.execute(batch_query).fetch_df()
+                batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-        # Write results to file in batches
-        with open(output_file, "w") as f:
-            # Write header
-            header = conn.execute("SELECT * FROM temp_edges LIMIT 0").fetchdf().columns.tolist()
-            f.write("\t".join(header) + "\n")
+            print(f"Written {min(offset + batch_size, total_edges)} / {total_edges} edges")
 
-            # Write data in batches
-            offset = 0
-            while True:
-                batch = conn.execute(
-                    f"""
-                    SELECT *
-                    FROM temp_edges
-                    ORDER BY subject, predicate, object
-                    LIMIT {batch_size} OFFSET {offset}
-                """
-                ).fetchdf()
+        # Print the generated SQL for debugging
+        print("Generated SQL query:")
+        print(batch_query)
 
-                if batch.empty:
-                    break
-
-                batch.to_csv(f, sep="\t", header=False, index=False, mode="a")
-                offset += batch_size
-                print(f"Written {offset} rows to output file")
+        # Execute the final query and save the result
+        conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
 
         print(f"Merged file has been created as '{output_file}'")
-
     except duckdb.Error as e:
         print(f"An error occurred: {e}")
+        print("Generated query was:")
+        print(query)
     finally:
+        # Close the connection
         conn.close()
         os.remove(db_file)
