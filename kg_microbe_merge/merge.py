@@ -73,9 +73,9 @@ def duckdb_merge(
                     break  # We only need the value from one row
 
     # Merge nodes
-    # duckdb_nodes_merge(
-    #     nodes_files_path, merge_nodes_output_path, priority_sources, nodes_batch_size
-    # )
+    duckdb_nodes_merge(
+        nodes_files_path, merge_nodes_output_path, priority_sources, nodes_batch_size
+    )
 
     # Merge edges
     duckdb_edges_merge(edges_files_path, merged_edges_output_path, edges_batch_size)
