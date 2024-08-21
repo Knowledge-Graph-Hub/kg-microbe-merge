@@ -427,7 +427,7 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
         # Load the files into DuckDB, excluding the 'id' column
         load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
 
-        # ! Commented because for now we don't care about colunms other than subject, predicate, and object.
+        # ! Commented because for now we don't care about columns other than subject, predicate, and object.
         # # Get column names
         # columns = conn.execute(
         #     "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"

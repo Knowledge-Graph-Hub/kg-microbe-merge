@@ -1,6 +1,7 @@
 """Merging module."""
 
 import csv
+import os
 from pathlib import Path
 from typing import Dict, List, Union
 
@@ -14,6 +15,24 @@ from kg_microbe_merge.utils.duckdb_utils import (
     duckdb_nodes_merge,
 )
 from kg_microbe_merge.utils.file_utils import tarball_files_in_dir
+
+# Set MALLOC_CONF environment variable to optimize memory allocation (jemalloc) in duckdb.
+"""
+Here are some commonly used jemalloc options that you might find useful:
+
+narenas: Sets the number of arenas. More arenas can reduce contention
+    in multi-threaded applications but may increase memory usage.
+lg_chunk: Sets the chunk size. Larger chunks can reduce fragmentation but may increase memory usage.
+dirty_decay_ms: Controls the time (in milliseconds) before dirty pages are purged.
+    Lower values can reduce memory usage at the cost of performance.
+muzzy_decay_ms: Similar to dirty_decay_ms, but for "muzzy" pages (pages that have been decommitted but not yet purged).
+background_thread: Enables or disables background threads for purging unused memory.
+    Setting this to true can improve performance by offloading purging work to background threads.
+
+"""
+os.environ["MALLOC_CONF"] = (
+    f"narenas:{os.cpu_count()},lg_chunk:21,background_thread:true,dirty_decay_ms:10000,muzzy_decay_ms:10000"
+)
 
 
 def parse_load_config(yaml_file: str) -> Dict:
