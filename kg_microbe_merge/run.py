@@ -93,10 +93,6 @@ def download(*args, **kwargs) -> None:
 @click.option("yaml", "-y", type=click.Path(exists=True), required=False)
 @click.option("processes", "-p", default=1, type=int)
 @click.option("--merge-tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
-# @click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
-# @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
-# @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
-# @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
 @click.option("--data-dir", "-d", type=click.Path(exists=True), default=RAW_DATA_DIR)
 @click.option("--subset-transforms", "-s", multiple=True)
 @click.option("--nodes-batch-size", "-n", type=int, default=100000)
@@ -109,10 +105,6 @@ def merge(
     subset_transforms: tuple,
     nodes_batch_size: int,
     edges_batch_size: int,
-    # base_nodes: str,
-    # base_edges: str,
-    # subset_nodes: str,
-    # subset_edges: str,
 ) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
