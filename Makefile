@@ -1,4 +1,7 @@
 
+datamodel:
+	poetry run gen-python kg_microbe_merge/schema/merge_schema.yaml > kg_microbe_merge/schema/merge_datamodel.py
+
 kg-microbe-core:
 	poetry run kg merge -m duckdb -s "bacdive, mediadive, madin_etal, rheamappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa"
 
