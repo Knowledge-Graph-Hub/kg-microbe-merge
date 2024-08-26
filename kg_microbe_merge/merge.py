@@ -101,4 +101,3 @@ def duckdb_merge(
 
     # Tarball all files in a directory
     tarball_files_in_dir(MERGED_DATA_DIR, "merged_kg")
-
