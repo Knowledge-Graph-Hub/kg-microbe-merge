@@ -63,7 +63,7 @@ def load_and_merge(yaml_file: str, processes: int = 1) -> nx.MultiDiGraph:
 def duckdb_merge(
     nodes_files_path: List[Union[str, Path]],
     edges_files_path: List[Union[str, Path]],
-    merge_nodes_output_path: Union[str, Path],
+    merged_nodes_output_path: Union[str, Path],
     merged_edges_output_path: Union[str, Path],
     nodes_batch_size: int = 100000,
     edges_batch_size: int = 2000000,
@@ -91,13 +91,16 @@ def duckdb_merge(
                     priority_sources.append(provided_by_value)
                     break  # We only need the value from one row
 
+    os.makedirs(os.path.dirname(merged_nodes_output_path), exist_ok=True)
+
     # Merge nodes
     duckdb_nodes_merge(
-        nodes_files_path, merge_nodes_output_path, priority_sources, nodes_batch_size
+        nodes_files_path, merged_nodes_output_path, priority_sources, nodes_batch_size
     )
 
     # Merge edges
     duckdb_edges_merge(edges_files_path, merged_edges_output_path, edges_batch_size)
 
     # Tarball all files in a directory
-    tarball_files_in_dir(MERGED_DATA_DIR, "merged_kg")
+    tarball_name = str(merged_nodes_output_path).split("/")[-2]
+    tarball_files_in_dir(MERGED_DATA_DIR / tarball_name, tarball_name)
