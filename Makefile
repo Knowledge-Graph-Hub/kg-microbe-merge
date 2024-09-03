@@ -9,7 +9,7 @@ kg-microbe-function:
 	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, uniprot_functional_microbes" --merge-label $@
 
 kg-microbe-biomedical:
-	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, ctd, wallen_etal, chebi, ec, envo, go, hp, mondo, ncbitaxon, upa, uniprot_human" --merge-label $@
+	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, hp, mondo, ctd, wallen_etal, uniprot_human" --merge-label $@
 
 kg-microbe-biomedical-function-merge:
-	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, ctd, wallen_etal, chebi, ec, envo, go, hp, mondo, ncbitaxon, upa, uniprot_functional_microbes, uniprot_human" --merge-label $@
+	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, hp, mondo, ctd, wallen_etal, uniprot_human, uniprot_functional_microbes" --merge-label $@
