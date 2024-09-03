@@ -29,8 +29,8 @@
 # KG-Microbe [BacDive]
 # 
 - 
-  url: git://Knowledge-Graph-Hub/kg-microbe/BacDive.tar.gz
-  local_name: BacDive.tar.gz
+  url: git://Knowledge-Graph-Hub/kg-microbe/bacdive.tar.gz
+  local_name: bacdive.tar.gz
 
 #
 # KG-Microbe [BactoTraits]
@@ -40,8 +40,58 @@
   local_name: BactoTraits.tar.gz
 
 #
+# KG-Microbe [CTD]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/ctd.tar.gz
+  local_name: ctd.tar.gz
+
+#
+# KG-Microbe [disbiome]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/disbiome.tar.gz
+  local_name: disbiome.tar.gz
+
+#
+# KG-Microbe [Madin et. al.]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/madin_etal.tar.gz
+  local_name: madin_etal.tar.gz
+
+#
 # KG-Microbe [MediaDive]
 # 
 - 
   url: git://Knowledge-Graph-Hub/kg-microbe/MediaDive.tar.gz
-  local_name: MediaDive.tar.gz
+  local_name: mediadive.tar.gz
+
+#
+# KG-Microbe [Rhea Mappings]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/rheamappings.tar.gz
+  local_name: rhea_mappings.tar.gz
+
+#
+# KG-Microbe [Uniprot functional microbes]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/uniprot_functional_microbes.tar.gz
+  local_name: uniprot_functional_microbes.tar.gz
+
+#
+# KG-Microbe [Uniprot human]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/uniprot_human.tar.gz
+  local_name: uniprot_human.tar.gz
+
+#
+# KG-Microbe [Wallen et.al.]
+#
+- 
+  url: git://Knowledge-Graph-Hub/kg-microbe/wallen_etal.tar.gz
+  local_name: wallen_etal.tar.gz
+

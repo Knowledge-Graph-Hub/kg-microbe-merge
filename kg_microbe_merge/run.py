@@ -93,12 +93,9 @@ def download(*args, **kwargs) -> None:
 @click.option("yaml", "-y", type=click.Path(exists=True), required=False)
 @click.option("processes", "-p", default=1, type=int)
 @click.option("--merge-tool", "-m", default="kgx", type=click.Choice(["kgx", "duckdb"]))
-# @click.option("base_nodes", "-base-n", type=click.Path(exists=True), required=False)
-# @click.option("base_edges", "-base-e", type=click.Path(exists=True), required=False)
-# @click.option("subset_nodes", "-subset-n", type=click.Path(exists=True), required=False)
-# @click.option("subset_edges", "-subset-e", type=click.Path(exists=True), required=False)
 @click.option("--data-dir", "-d", type=click.Path(exists=True), default=RAW_DATA_DIR)
 @click.option("--subset-transforms", "-s", multiple=True)
+@click.option("--merge-label", "-l", default="merged-kg")
 @click.option("--nodes-batch-size", "-n", type=int, default=100000)
 @click.option("--edges-batch-size", "-e", type=int, default=2000000)
 def merge(
@@ -107,12 +104,9 @@ def merge(
     merge_tool: str,
     data_dir: str,
     subset_transforms: tuple,
+    merge_label: str,
     nodes_batch_size: int,
     edges_batch_size: int,
-    # base_nodes: str,
-    # base_edges: str,
-    # subset_nodes: str,
-    # subset_edges: str,
 ) -> None:
     """
     Use KGX to load subgraphs to create a merged graph.
@@ -144,12 +138,18 @@ def merge(
 
     merge_kg_object.merged_graph = merged_graph_object
     if merge_tool == "duckdb":
+        if merge_label:
+            merged_nodes_output_path = MERGED_DATA_DIR / merge_label / "nodes.tsv"
+            merged_edges_output_path = MERGED_DATA_DIR / merge_label / "edges.tsv"
+        else:
+            merged_nodes_output_path = MERGED_DATA_DIR / "nodes.tsv"
+            merged_edges_output_path = MERGED_DATA_DIR / "edges.tsv"
 
         duckdb_merge(
             node_paths,
             edge_paths,
-            MERGED_DATA_DIR / "nodes.tsv",
-            MERGED_DATA_DIR / "edges.tsv",
+            merged_nodes_output_path,
+            merged_edges_output_path,
             nodes_batch_size,
             edges_batch_size,
         )
