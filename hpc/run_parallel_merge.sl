@@ -8,7 +8,7 @@
 #SBATCH --job-name=parallel_merge
 #SBATCH --output=parallel_merge_%A_%a.out
 #SBATCH --error=parallel_merge_%A_%a.err
-#SBATCH --array=0-10
+#SBATCH --array=0-3
 #SBATCH -N 1
 
 module load python/3.10
