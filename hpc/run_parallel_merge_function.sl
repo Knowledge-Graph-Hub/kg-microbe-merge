@@ -8,8 +8,10 @@
 #SBATCH --job-name=parallel_merge
 #SBATCH --output=parallel_merge_%A_%a.out
 #SBATCH --error=parallel_merge_%A_%a.err
-#SBATCH --array=0-3
+#SBATCH --array=0
 #SBATCH -N 1
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=MJoachimiak@lbl.gov
 
 module load python/3.10
 cd kg-microbe-merge
@@ -20,8 +22,7 @@ poetry install
 
 # Array of merged graph names
 merges=(
-    kg-microbe-core
-    kg-microbe-biomedical
+    kg-microbe-function
 )
 
 # Get the merge for this job array task
