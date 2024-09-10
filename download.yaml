@@ -37,7 +37,7 @@
 # 
 - 
   url: git://Knowledge-Graph-Hub/kg-microbe/BactoTraits.tar.gz
-  local_name: BactoTraits.tar.gz
+  local_name: bactotraits.tar.gz
 
 #
 # KG-Microbe [CTD]
