@@ -69,6 +69,7 @@ define create_release
 	gh release create $$TAG_NAME --title "$$RELEASE_TITLE" --notes "$$RELEASE_NOTES" $(if $(filter $(1),pre-release),--prerelease) --repo $(REPO_OWNER)/$(REPO_NAME); \
 	for tarball in $(TAR_GZ_FILES); do \
 		gh release upload $$TAG_NAME $$tarball --repo $(REPO_OWNER)/$(REPO_NAME); \
+		echo "$$tarball uploaded to release $$TAG_NAME"; \
 	done; \
 	echo "$(capitalize $(1)) $$TAG_NAME created successfully."
 endef
@@ -82,6 +83,7 @@ define create_tag
 	git push origin $$TAG; \
 	for tarball in $(TAR_GZ_FILES); do \
 		gh release upload $$TAG $$tarball --repo $(REPO_OWNER)/$(REPO_NAME); \
+		echo "$$tarball uploaded to release $$TAG"; \
 	done; \
 	echo "Release $$TAG created successfully."
 endef
