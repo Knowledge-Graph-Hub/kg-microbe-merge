@@ -1,6 +1,7 @@
 """Utility functions for working with DuckDB in the KG Microbe Merge project."""
 
 import os
+from pathlib import Path
 from typing import List
 
 import duckdb
@@ -304,7 +305,9 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
     :param priority_sources: List of source names to prioritize.
     """
     # Create a DuckDB connection
-    conn = duckdb.connect("nodes.db")
+    merge_label = Path(output_file).parent.name
+    nodes_db_file = f"{merge_label}_nodes.db"
+    conn = duckdb.connect(nodes_db_file)
 
     # Load the files into DuckDB
     load_into_duckdb(conn, nodes_file_list, "combined_nodes")
@@ -379,7 +382,7 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
     finally:
         # Close the connection
         conn.close()
-        os.remove("nodes.db")
+        os.remove(nodes_db_file)
 
 
 def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
@@ -416,7 +419,8 @@ def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
     memory usage and allows for processing of very large datasets that exceed available RAM.
     """
     os.makedirs(TMP_DIR, exist_ok=True)
-    db_file = "edges_persistent.db"
+    merge_label = Path(output_file).parent.name
+    db_file = f"{merge_label}_edges_persistent.db"
     conn = duckdb.connect(db_file)
 
     try:
