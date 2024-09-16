@@ -14,5 +14,8 @@ kg-microbe-biomedical:
 kg-microbe-biomedical-function:
 	poetry run kg merge -m duckdb -n 1000000 -e 100000 -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, hp, mondo, ctd, wallen_etal, uniprot_human, uniprot_functional_microbes" --merge-label $@
 
+full-merge:
+	poetry run kg merge -m duckdb --merge-label $@
+
 include kg-microbe-merge.Makefile
 
