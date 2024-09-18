@@ -1,17 +1,19 @@
 #!/bin/bash
 #SBATCH --account=m4689
-#SBATCH --qos=regular
+#SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=360
+#SBATCH --time=60
 #SBATCH --ntasks=1
-#SBATCH --mem=425GB
+#SBATCH --mem=10GB
 #SBATCH --job-name=parallel_merge
 #SBATCH --output=parallel_merge_%A_%a.out
 #SBATCH --error=parallel_merge_%A_%a.err
-#SBATCH --array=0-3
+#SBATCH --array=0-1
 #SBATCH -N 1
 
 module load python/3.10
+# conda activate kg-microbe-merge
+
 cd kg-microbe-merge
 python -m venv venv-merge
 source venv-merge/bin/activate
