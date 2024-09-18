@@ -8,8 +8,6 @@
 #SBATCH --output=%j.out
 #SBATCH --error=%j.err
 #SBATCH -N 1
-#SBATCH --mail-type=BEGIN,END
-#SBATCH --mail-user=hhegde@lbl.gov
 
 # conda activate kg-microbe-merge
 module load python/3.10
