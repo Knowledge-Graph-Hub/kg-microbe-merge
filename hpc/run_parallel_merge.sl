@@ -10,6 +10,8 @@
 #SBATCH --error=parallel_merge_%A_%a.err
 #SBATCH --array=0-1
 #SBATCH -N 1
+#SBATCH --mail-type=BEGIN,END
+#SBATCH --mail-user=MJoachimiak@lbl.gov
 
 module load python/3.10
 # conda activate kg-microbe-merge
