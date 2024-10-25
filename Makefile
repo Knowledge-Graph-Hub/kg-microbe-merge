@@ -31,8 +31,8 @@ kg-microbe-biomedical-function-cat:
         cd ../../merged && \$
         mkdir -p kg-microbe-biomedical-function-cat && \$
         cd kg-microbe-biomedical-function-cat && \$
-        cat ../kg-microbe-core/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \$
-        cat ../kg-microbe-core/edges.tsv ../../raw/uniprot_functional_microbes/edges_data.tsv > merged-kg_edges.tsv && \$
+        cat ../kg-microbe-biomedical/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \$
+        cat ../kg-microbe-biomedical/edges.tsv ../../raw/uniprot_functional_microbes/edges_data.tsv > merged-kg_edges.tsv && \$
         cd ../../../$
 
 
