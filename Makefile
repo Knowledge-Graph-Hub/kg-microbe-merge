@@ -32,6 +32,7 @@ kg-microbe-biomedical-function-cat:
 	cd data/raw/uniprot_functional_microbes && \
 	grep UniprotKB: nodes.tsv > nodes_UniprotKB.tsv && \
 	tail -n +2 edges.tsv | cut -f1,2,3 > edges_data_clean.tsv && \
+	head -1 edges.tsv | cut -f1,2,3 > edges_header_clean.tsv && \
 	cd ../../merged && \
 	cd kg-microbe-biomedical && \
 	tail -n +2 edges.tsv > edges_data.tsv && \
