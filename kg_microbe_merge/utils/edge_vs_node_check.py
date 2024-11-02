@@ -3,9 +3,17 @@ import duckdb
 # Connect to DuckDB (in-memory)
 con = duckdb.connect()
 
-# Load the TSV files into DuckDB tables
-con.execute("CREATE TABLE edges AS SELECT * FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_edges.tsv', delim='\t')")
-con.execute("CREATE TABLE nodes AS SELECT * FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_nodes.tsv', delim='\t')")
+# Load only the necessary columns from the TSV files into DuckDB tables
+con.execute("""
+    CREATE TABLE edges AS 
+    SELECT subject_id, object_id 
+    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_edges.tsv', delim='\t')
+""")
+con.execute("""
+    CREATE TABLE nodes AS 
+    SELECT id 
+    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_nodes.tsv', delim='\t')
+""")
 
 # Check whether all subject and object IDs are represented as node IDs
 query = """
