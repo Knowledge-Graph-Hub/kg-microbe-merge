@@ -6,7 +6,7 @@ con = duckdb.connect()
 # Load only the necessary columns from the TSV files into DuckDB tables
 con.execute("""
     CREATE TABLE edges AS 
-    SELECT subject_id, object_id 
+    SELECT subject AS subject_id, object AS object_id 
     FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_edges.tsv', delim='\t')
 """)
 con.execute("""
