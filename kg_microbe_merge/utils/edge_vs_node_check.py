@@ -7,12 +7,12 @@ con = duckdb.connect()
 con.execute("""
     CREATE TABLE edges AS 
     SELECT subject AS subject_id, object AS object_id 
-    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_edges.tsv', delim='\t')
+    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_edges.tsv', delim='\t',null_padding=true)
 """)
 con.execute("""
     CREATE TABLE nodes AS 
     SELECT id 
-    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_nodes.tsv', delim='\t')
+    FROM read_csv_auto('data/merged/kg-microbe-biomedical-function-cat/merged-kg_nodes.tsv', delim='\t', null_padding=true)
 """)
 
 # Check whether all subject and object IDs are represented as node IDs
