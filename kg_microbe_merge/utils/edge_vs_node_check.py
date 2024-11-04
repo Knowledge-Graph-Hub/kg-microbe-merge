@@ -1,5 +1,6 @@
 import duckdb
 import argparse
+import os
 
 # Function to determine the category based on the ID prefix
 def determine_category(node_id):
@@ -18,6 +19,9 @@ def determine_category(node_id):
     return 'Unknown'
 
 def main(kg_path):
+    # Extract the directory name to use as a prefix for the output files
+    kg_name = os.path.basename(os.path.normpath(kg_path))
+
     # Connect to DuckDB (in-memory)
     con = duckdb.connect()
 
@@ -50,13 +54,15 @@ def main(kg_path):
     missing_ids = con.execute(query).fetchall()
 
     # Write the missing IDs directly to a TSV file
-    with open('missing_nodes.tsv', 'w') as f:
+    missing_nodes_file = f'{kg_name}_missing_nodes.tsv'
+    with open(missing_nodes_file, 'w') as f:
         f.write("id\n")  # Write header
         for row in missing_ids:
             f.write(f"{row[0]}\n")
 
     # Write the missing IDs and their categories to a new TSV file
-    with open('missing_nodes_with_category.tsv', 'w') as f:
+    missing_nodes_with_category_file = f'{kg_name}_missing_nodes_with_category.tsv'
+    with open(missing_nodes_with_category_file, 'w') as f:
         for row in missing_ids:
             node_id = row[0]
             category = determine_category(node_id)
