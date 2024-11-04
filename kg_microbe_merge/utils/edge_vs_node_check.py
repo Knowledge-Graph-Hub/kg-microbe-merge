@@ -37,8 +37,34 @@ with open('missing_nodes.tsv', 'w') as f:
     for row in missing_ids:
         f.write(f"{row[0]}\n")
 
+
+# Define the category mapping based on the prefix
+category_mapping = {
+    'EC:': 'biolink:Enzyme',
+    'assay:': 'biolink:PhenotypicQuality',
+    'trophic_type:': 'biolink:BiologicalProcess',
+    'cell_shape:': 'biolink:PhenotypicQuality',
+    'UniprotKB:': 'biolink:Enzyme',
+    'medium:': 'biolink:ChemicalEntity',
+    'carbon_substrates:': 'biolink:ChemicalEntity'
+}
+
+# Function to determine the category based on the ID prefix
+def determine_category(node_id):
+    for prefix, category in category_mapping.items():
+        if node_id.startswith(prefix):
+            return category
+    return 'Unknown'
+
+# Write the missing IDs and their categories to a new TSV file
+with open('missing_nodes_with_category.tsv', 'w') as f:
+    for row in missing_ids:
+        node_id = row[0]
+        category = determine_category(node_id)
+        f.write(f"{node_id}\t{category}\t\n")  # The name column is left empty
+
 # Output the result
 if missing_ids:
-    print("The following IDs are not represented as node IDs:", missing_ids)
+    print(f"The following IDs are not represented as node IDs: {len(missing_ids)} \n missing_ids")
 else:
     print("All subject and object IDs are represented as node IDs.")
