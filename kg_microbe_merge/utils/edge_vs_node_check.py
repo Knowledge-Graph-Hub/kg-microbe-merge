@@ -66,7 +66,8 @@ def main(kg_path):
             node_id = row[0]
             if node_id is not None:
                 category = determine_category(node_id)
-                f.write(f"{node_id}\t{category}\t\n")  # The name column is left empty
+                # Write the id, category, and name columns, followed by the appropriate number of tab spaces
+                f.write(f"{node_id}\t{category}\t\t\t\t\t\t\t\t\t\t\t\t\t\n")
 
     # Output the result
     if missing_ids:
