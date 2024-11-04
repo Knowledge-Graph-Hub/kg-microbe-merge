@@ -56,15 +56,17 @@ def main(kg_path):
     with open(missing_nodes_file, 'w') as f:
         f.write("id\n")  # Write header
         for row in missing_ids:
-            f.write(f"{row[0]}\n")
+            if row[0] is not None:
+                f.write(f"{row[0]}\n")
 
     # Write the missing IDs and their categories to a new TSV file
     missing_nodes_with_category_file = f'data/merged/{kg_path}/{kg_path}_missing_nodes_with_category.tsv'
     with open(missing_nodes_with_category_file, 'w') as f:
         for row in missing_ids:
             node_id = row[0]
-            category = determine_category(node_id)
-            f.write(f"{node_id}\t{category}\t\n")  # The name column is left empty
+            if node_id is not None:
+                category = determine_category(node_id)
+                f.write(f"{node_id}\t{category}\t\n")  # The name column is left empty
 
     # Output the result
     if missing_ids:
