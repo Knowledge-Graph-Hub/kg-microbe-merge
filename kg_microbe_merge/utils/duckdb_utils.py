@@ -214,96 +214,142 @@ def write_file(con, columns, filename, table_name):
 
 def load_into_duckdb(conn, file_list, table_name, exclude_columns=None):
     """
-    Load multiple files into a single DuckDB table.
-
-    :param conn: DuckDB connection object.
-    :param file_list: List of file paths to load.
-    :param table_name: Name of the table to create.
-    :param exclude_columns: List of columns to exclude from the table.
+    Load multiple files into a single DuckDB table efficiently.
     """
     if exclude_columns is None:
         exclude_columns = []
 
-    # Collect all columns from all files
-    all_columns = []
-    file_columns_dict = {}
+    try:
+        # Collect all unique columns from all files
+        all_columns_set = set()
+        file_columns_dict = {}
 
-    for idx, file in enumerate(file_list):
-        columns_query = f"SELECT * FROM read_csv_auto('{file}', header=true, sep='\t') LIMIT 0"
-        all_columns = conn.execute(columns_query).df().columns.tolist()
-        file_columns_dict[file] = all_columns
-        if idx == 0:
-            all_columns.extend(all_columns)
-        else:
-            all_columns.extend([col for col in all_columns if col not in all_columns])
+        for file in file_list:
+            # Read the columns from the file without loading data
+            columns_query = f"SELECT * FROM read_csv_auto('{file}', header=True, sep='\t') LIMIT 0"
+            file_columns = conn.execute(columns_query).df().columns.tolist()
+            file_columns_dict[file] = file_columns
+            all_columns_set.update(file_columns)
 
-    # Read the structure of the first file to get column names
-    all_columns = conn.execute(columns_query).df().columns.tolist()
+        # Convert the set to a sorted list for consistent ordering
+        all_columns = sorted(all_columns_set)
 
-    # Filter out excluded columns
-    all_columns = [col for col in all_columns if col not in exclude_columns]
-    # columns_str = ", ".join(all_columns)
+        # Exclude specified columns
+        all_columns = [col for col in all_columns if col not in exclude_columns]
 
-    create_table_query = f"""CREATE OR REPLACE TABLE {table_name}
-                                 ({', '.join([f'{col} VARCHAR' for col in all_columns])})"""
-    print(f"Create Table Query: {create_table_query}")  # Debugging line
-    conn.execute(create_table_query)
+        # Create the table with all columns as VARCHAR
+        create_table_query = f"""
+        CREATE OR REPLACE TABLE {table_name} (
+            {', '.join([f'"{col}" VARCHAR' for col in all_columns])}
+        )
+        """
+        conn.execute(create_table_query)
 
-    # Insert data from each file
-    for file in file_list:
-        file_columns = file_columns_dict[file]
-        select_parts = [
-            f"{col}" if col in file_columns else f"NULL AS {col}" for col in all_columns
-        ]
-        select_str = ", ".join(select_parts)
-        insert_query = f"""INSERT INTO {table_name} SELECT {select_str} FROM read_csv_auto('{file}',
-                                 header=true, sep='\t')"""
-        print(f"Insert Query: {insert_query}")  # Debugging line
-        conn.execute(insert_query)
+        # Insert data from each file
+        for file in file_list:
+            file_columns = file_columns_dict[file]
+            # Build the SELECT clause, inserting NULLs for missing columns
+            select_parts = [
+                f'"{col}"' if col in file_columns else f"NULL AS \"{col}\"" for col in all_columns
+            ]
+            select_str = ", ".join(select_parts)
+            # Read data from the file and insert into the table
+            insert_query = f"""
+            INSERT INTO {table_name}
+            SELECT {select_str}
+            FROM read_csv_auto('{file}', header=True, sep='\t')
+            """
+            conn.execute(insert_query)
 
-    print(f"Loaded {len(file_list)} files into table '{table_name}'")
+    except duckdb.Error as e:
+        print(f"An error occurred while loading data into DuckDB: {e}")
 
 
-def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_size=100000):
+def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources):
     """
-    Merge nodes files using DuckDB with batching for large datasets.
-
-    Construct the query to merge the nodes
-
-    This query performs the following operations:
-    1. WITH columns AS (...):
-       - Retrieves all column names from the 'combined_nodes' table.
-
-    2. WITH agg_columns AS (...):
-       - Generates aggregation expressions for each column:
-         a. For 'id': Keep as is (used for grouping)
-         b. For 'name':
-            - If any row for this id has 'provided_by' matching any value in the priority_sources list,
-              select the 'name' from that row.
-            - Otherwise, select the first 'name' encountered.
-         c. For all other columns:
-            - Concatenate all distinct values with '|' as separator.
-
-    3. SELECT STRING_AGG(...):
-       - Combines all aggregation expressions into a single string.
-
-    4. The resulting aggregation expressions are then used in a batched processing approach:
-       - Divide the data into batches based on unique IDs.
-       - For each batch:
-         a. Select the relevant IDs.
-         b. Apply the aggregation expressions.
-         c. Group by ID and order the results.
-         d. Write the results to the output file.
-
-    This batched approach allows for processing of large datasets by:
-    - Reducing memory usage by processing subsets of data at a time.
-    - Maintaining the same aggregation logic as the original query.
-    - Ensuring consistent output formatting across all batches.
+    Merge nodes files using DuckDB entirely in memory without batching.
 
     :param nodes_file_list: List of paths to nodes files.
     :param output_file: Path to the output file.
     :param priority_sources: List of source names to prioritize.
     """
+    import duckdb
+    import os
+    from pathlib import Path
+
+    # Create an in-memory DuckDB connection
+    conn = duckdb.connect()
+
+    # Load the files into DuckDB
+    load_into_duckdb(conn, nodes_file_list, "combined_nodes")
+
+    # Prepare the priority sources for SQL query
+    priority_sources_str = ", ".join(f"'{source}'" for source in priority_sources)
+
+    try:
+        # Construct the query to get columns and their aggregation expressions
+        query = f"""
+        WITH columns AS (
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_nodes'
+        ),
+        agg_columns AS (
+            SELECT
+                CASE
+                    WHEN column_name = 'id' THEN 'id'
+                    WHEN column_name = 'name' THEN
+                        'COALESCE(MAX(CASE WHEN provided_by IN ({priority_sources_str}) THEN ' || column_name || ' END),
+                                  MAX(' || column_name || ')) AS ' || column_name
+                    ELSE 'STRING_AGG(DISTINCT ' || column_name || ", '|') AS " || column_name
+                END AS agg_expr
+            FROM columns
+        )
+        SELECT STRING_AGG(agg_expr, ', ') AS agg_expressions
+        FROM agg_columns
+        """
+
+        # Execute the query to get the aggregation expressions
+        agg_expressions = conn.execute(query).fetchone()[0]
+
+        # Perform the aggregation over all data
+        final_query = f"""
+        SELECT {agg_expressions}
+        FROM combined_nodes
+        GROUP BY id
+        ORDER BY id
+        """
+
+        # Print the generated SQL for debugging
+        print("Generated SQL query:")
+        print(final_query)
+
+        # Execute the final query and write the result to the output file
+        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+
+        print(f"Merged file has been created as '{output_file}'")
+
+    except duckdb.Error as e:
+        print(f"An error occurred: {e}")
+        print("Generated query was:")
+        print(query)
+    finally:
+        # Close the connection
+        conn.close()
+
+def duckdb_nodes_merge_batch(nodes_file_list, output_file, priority_sources, batch_size=100000):
+    """
+    Merge nodes files using DuckDB with batching for large datasets.
+    Optimizations:
+    - Avoids using OFFSET in batch selection.
+    - Uses temporary tables with row numbers for efficient batching.
+    - Utilizes JOIN instead of IN for better performance.
+    - Leverages DuckDB's multithreading capabilities.
+    """
+    import duckdb
+    import os
+    from pathlib import Path
+
     # Create a DuckDB connection
     merge_label = Path(output_file).parent.name
     nodes_db_file = f"{merge_label}_nodes.db"
@@ -341,38 +387,42 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
         # Execute the query to get the aggregation expressions
         agg_expressions = conn.execute(query).fetchone()[0]
 
-        # Get the total number of unique IDs
-        total_ids = conn.execute("SELECT COUNT(DISTINCT id) FROM combined_nodes").fetchone()[0]
+        # Create a temporary table with row numbers for batching
+        conn.execute("""
+            CREATE TEMPORARY TABLE temp_ids AS
+            SELECT id, ROW_NUMBER() OVER (ORDER BY id) AS rn
+            FROM (SELECT DISTINCT id FROM combined_nodes)
+        """)
 
-        # Process in batches
-        for offset in range(0, total_ids, batch_size):
+        # Get the total number of unique IDs
+        total_ids = conn.execute("SELECT COUNT(*) FROM temp_ids").fetchone()[0]
+
+        # Process in batches without using OFFSET
+        for batch_start in range(1, total_ids + 1, batch_size):
+            batch_end = batch_start + batch_size - 1
             batch_query = f"""
             WITH batch_ids AS (
-                SELECT DISTINCT id
-                FROM combined_nodes
-                ORDER BY id
-                LIMIT {batch_size} OFFSET {offset}
+                SELECT id FROM temp_ids WHERE rn BETWEEN {batch_start} AND {batch_end}
             )
             SELECT {agg_expressions}
             FROM combined_nodes
-            WHERE id IN (SELECT id FROM batch_ids)
+            JOIN batch_ids USING (id)
             GROUP BY id
             ORDER BY id
             """
 
             # Print the generated SQL for debugging (only for the first batch)
-            if offset == 0:
+            if batch_start == 1:
                 print("Generated SQL query (for first batch):")
                 print(batch_query)
                 # For the first batch, create the file with headers
                 conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
-
             else:
                 # For subsequent batches, append without headers
                 batch_data = conn.execute(batch_query).fetch_df()
                 batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-            print(f"Written {min(offset + batch_size, total_ids)} / {total_ids} nodes")
+            print(f"Processed {min(batch_end, total_ids)} / {total_ids} nodes")
 
         print(f"Merged file has been created as '{output_file}'")
     except duckdb.Error as e:
@@ -384,130 +434,152 @@ def duckdb_nodes_merge(nodes_file_list, output_file, priority_sources, batch_siz
         conn.close()
         os.remove(nodes_db_file)
 
-
-def duckdb_edges_merge(edges_file_list, output_file, batch_size=1000000):
+def duckdb_edges_merge(edges_file_list, output_file):
     """
-    Merge edges files using DuckDB with a disk-based approach for improved memory efficiency.
+    Merge edges files using DuckDB entirely in memory without batching.
 
     :param edges_file_list: List of paths to edges files.
     :param output_file: Path to the output file.
-    :param batch_size: Number of edges to process in each batch.
-
-    Detailed Explanation:
-
-    1. Initial Setup:
-       - The function connects to a persistent DuckDB database on disk.
-       - It loads the edge files into a table using a memory-mapped approach.
-
-    2. Temporary Table Creation:
-       - A temporary table is created with distinct subject, predicate, and object combinations.
-       - This table is stored on disk using a memory-mapped file.
-
-    3. Batched Column-wise Processing:
-       - For each non-key column (not subject, predicate, or object):
-         - The column is added to the temporary table.
-         - An UPDATE statement aggregates the distinct values for each edge in batches.
-
-    4. Result Writing:
-       - The final results are written to the output file directly from the temporary table.
-
-    5. Error Handling and Cleanup:
-       - Any DuckDB errors are caught and reported.
-       - The database connection is closed and temporary files are removed.
-
-    This approach processes data in batches and uses disk storage, which significantly reduces
-    memory usage and allows for processing of very large datasets that exceed available RAM.
     """
-    os.makedirs(TMP_DIR, exist_ok=True)
+    import duckdb
+    import os
+
+    # Create an in-memory DuckDB connection
+    conn = duckdb.connect()
+
+    try:
+        # Load the files into DuckDB, excluding the 'id' column
+        load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
+
+        # Get all column names except 'id'
+        columns = conn.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_edges' AND column_name != 'id'
+        """).fetchall()
+        column_names = [col[0] for col in columns]
+
+        # Identify key columns and non-key columns
+        key_columns = ['subject', 'predicate', 'object']
+        non_key_columns = [col for col in column_names if col not in key_columns]
+
+        # Construct aggregation expressions for non-key columns
+        agg_expressions = []
+        for col in non_key_columns:
+            agg_expressions.append(
+                f"STRING_AGG(DISTINCT {col}, '|' ORDER BY {col}) AS {col}"
+            )
+
+        # Construct the final query
+        final_query = f"""
+        SELECT
+            {', '.join(key_columns)}
+            {', ' + ', '.join(agg_expressions) if agg_expressions else ''}
+        FROM combined_edges
+        GROUP BY {', '.join(key_columns)}
+        ORDER BY {', '.join(key_columns)}
+        """
+
+        # Print the generated SQL for debugging
+        print("Generated SQL query:")
+        print(final_query)
+
+        # Execute the final query and write the result to the output file
+        conn.execute(f"COPY ({final_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+
+        print(f"Merged file has been created as '{output_file}'")
+
+    except duckdb.Error as e:
+        print(f"An error occurred: {e}")
+    finally:
+        conn.close()
+
+def duckdb_edges_merge_batch(edges_file_list, output_file, batch_size=1000000):
+    """
+    Merge edges files using DuckDB with optimized batching and aggregation.
+
+    Optimizations:
+    - Avoids using OFFSET in batch processing.
+    - Uses temporary tables with row numbers for efficient batching.
+    - Efficiently processes non-key columns without running out of memory.
+    - Utilizes DuckDB's multithreading capabilities.
+    """
+    import duckdb
+    import os
+    from pathlib import Path
+
+    # Create a DuckDB connection
     merge_label = Path(output_file).parent.name
     db_file = f"{merge_label}_edges_persistent.db"
     conn = duckdb.connect(db_file)
 
     try:
-        # Enable memory-mapped storage for temporary tables
-        conn.execute(f"PRAGMA temp_directory='{TMP_DIR}'")  # Store temp files in the same directory
-        # conn.execute("PRAGMA memory_limit='4GB'")  # Adjust based on available system memory
-
         # Load the files into DuckDB, excluding the 'id' column
         load_into_duckdb(conn, edges_file_list, "combined_edges", exclude_columns=["id"])
 
-        # ! Commented because for now we don't care about columns other than subject, predicate, and object.
-        # # Get column names
-        # columns = conn.execute(
-        #     "SELECT column_name FROM information_schema.columns WHERE table_name = 'combined_edges'"
-        # ).fetchall()
-        # column_names = [col[0] for col in columns]
+        # Get all column names except 'id'
+        columns = conn.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name = 'combined_edges' AND column_name != 'id'
+        """).fetchall()
+        column_names = [col[0] for col in columns]
 
-        # Create a temporary table for storing intermediate results
-        conn.execute(
-            """
-            CREATE OR REPLACE TABLE temp_edges AS
-            SELECT DISTINCT subject, predicate, object
+        # Identify key columns and non-key columns
+        key_columns = ['subject', 'predicate', 'object']
+        non_key_columns = [col for col in column_names if col not in key_columns]
+
+        # Construct aggregation expressions for non-key columns
+        agg_expressions = []
+        for col in non_key_columns:
+            agg_expressions.append(
+                f"STRING_AGG(DISTINCT {col}, '|' ORDER BY {col}) AS {col}"
+            )
+
+        # Create a temporary table with unique edges and row numbers for batching
+        conn.execute(f"""
+            CREATE TEMPORARY TABLE temp_edges AS
+            SELECT {', '.join(key_columns)},
+                   ROW_NUMBER() OVER (ORDER BY {', '.join(key_columns)}) AS rn
             FROM combined_edges
-        """
-        )
+            GROUP BY {', '.join(key_columns)}
+        """)
 
-        # Process non-key columns in batches
-        # ! This approach is not efficient for large datasets and may run out of memory
-        # for column in column_names:
-        #     if column not in ("subject", "predicate", "object"):
-        #         conn.execute(f"ALTER TABLE temp_edges ADD COLUMN {column} STRING")
+        # Get the total number of unique edges
+        total_edges = conn.execute("SELECT COUNT(*) FROM temp_edges").fetchone()[0]
 
-        #         # Process in batches
-        #         offset = 0
-        #         while True:
-        #             batch_update = conn.execute(
-        #                 f"""
-        #                 UPDATE temp_edges
-        #                 SET {column} = (
-        #                     SELECT string_agg(DISTINCT ce.{column}, '|' ORDER BY ce.{column})
-        #                     FROM (
-        #                         SELECT subject, predicate, object, {column}
-        #                         FROM combined_edges
-        #                         LIMIT {batch_size} OFFSET {offset}
-        #                     ) ce
-        #                     WHERE ce.subject = temp_edges.subject
-        #                       AND ce.predicate = temp_edges.predicate
-        #                       AND ce.object = temp_edges.object
-        #                 )
-        #                 WHERE temp_edges.rowid IN (
-        #                     SELECT rowid
-        #                     FROM temp_edges
-        #                     LIMIT {batch_size} OFFSET {offset}
-        #                 )
-        #             """
-        #             )
+        # Process in batches without using OFFSET
+        for batch_start in range(1, total_edges + 1, batch_size):
+            batch_end = batch_start + batch_size - 1
 
-        #             if batch_update.fetchone()[0] == 0:
-        #                 break
+            # Prepare the batch query
+            batch_query = f"""
+            WITH batch_edges AS (
+                SELECT {', '.join(key_columns)}
+                FROM temp_edges
+                WHERE rn BETWEEN {batch_start} AND {batch_end}
+            )
+            SELECT
+                {', '.join(key_columns)},
+                {', '.join(agg_expressions)}
+            FROM combined_edges
+            INNER JOIN batch_edges USING ({', '.join(key_columns)})
+            GROUP BY {', '.join(key_columns)}
+            ORDER BY {', '.join(key_columns)}
+            """
 
-        #             offset += batch_size
-        #             print(f"Processed {offset} rows for column {column}")
+            # Print the generated SQL for debugging (only for the first batch)
+            if batch_start == 1:
+                print("Generated SQL query (for first batch):")
+                print(batch_query)
+                # For the first batch, create the file with headers
+                conn.execute(f"COPY ({batch_query}) TO '{output_file}' (HEADER, DELIMITER '\t')")
+            else:
+                # For subsequent batches, append without headers
+                batch_data = conn.execute(batch_query).fetch_df()
+                batch_data.to_csv(output_file, mode="a", sep="\t", header=False, index=False)
 
-        # Write results to file in batches
-        with open(output_file, "w") as f:
-            # Write header
-            header = conn.execute("SELECT * FROM temp_edges LIMIT 0").fetchdf().columns.tolist()
-            f.write("\t".join(header) + "\n")
-
-            # Write data in batches
-            offset = 0
-            while True:
-                batch = conn.execute(
-                    f"""
-                    SELECT *
-                    FROM temp_edges
-                    ORDER BY subject, predicate, object
-                    LIMIT {batch_size} OFFSET {offset}
-                """
-                ).fetchdf()
-
-                if batch.empty:
-                    break
-
-                batch.to_csv(f, sep="\t", header=False, index=False, mode="a")
-                offset += batch_size
-                print(f"Written {offset} rows to output file")
+            print(f"Processed {min(batch_end, total_edges)} / {total_edges} edges")
 
         print(f"Merged file has been created as '{output_file}'")
 
