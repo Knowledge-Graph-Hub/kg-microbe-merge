@@ -14,6 +14,7 @@ kg-microbe-biomedical-function:
 	poetry run kg merge -m duckdb --merge-label $@
 
 kg-microbe-function-cat:
+	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py kg-microbe-core 
 	cd data/raw/uniprot_functional_microbes && \
 	grep UniprotKB: nodes.tsv > nodes_UniprotKB.tsv && \
 	tail -n +2 edges.tsv | cut -f1,2,3 > edges_data_clean.tsv && \
@@ -24,11 +25,12 @@ kg-microbe-function-cat:
 	tail -n +2 edges.tsv > edges_data.tsv && \
 	cd ../ && \
 	cd kg-microbe-function-cat && \
-	cat ../kg-microbe-core/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
+	cat ../kg-microbe-core/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv ../kg-microbe-core/kg-microbe-core_missing_nodes_with_category.tsv > merged-kg_nodes.tsv && \
 	cat ../kg-microbe-core/edges_header.tsv ../kg-microbe-core/edges_data.tsv ../../raw/uniprot_functional_microbes/edges_data_clean.tsv > merged-kg_edges.tsv && \
 	cd ../../../
 
 kg-microbe-biomedical-function-cat:
+	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py kg-microbe-biomedical
 	cd data/raw/uniprot_functional_microbes && \
 	grep UniprotKB: nodes.tsv > nodes_UniprotKB.tsv && \
 	tail -n +2 edges.tsv | cut -f1,2,3 > edges_data_clean.tsv && \
@@ -39,7 +41,7 @@ kg-microbe-biomedical-function-cat:
 	cd ../ && \
 	mkdir -p kg-microbe-biomedical-function-cat && \
 	cd kg-microbe-biomedical-function-cat && \
-	cat ../kg-microbe-biomedical/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
+	cat ../kg-microbe-biomedical/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv ../kg-microbe-biomedical/kg-microbe-biomedical_missing_nodes_with_category.tsv && \
 	cat ../kg-microbe-core/edges_header.tsv ../kg-microbe-biomedical/edges_data.tsv ../../raw/uniprot_functional_microbes/edges_data_clean.tsv > merged-kg_edges.tsv && \
 	cd ../../../
 
