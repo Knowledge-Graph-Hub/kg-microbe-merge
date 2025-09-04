@@ -139,11 +139,11 @@ def merge(
     merge_kg_object.merged_graph = merged_graph_object
     if merge_tool == "duckdb":
         if merge_label:
-            merged_nodes_output_path = MERGED_DATA_DIR / merge_label / "nodes.tsv"
-            merged_edges_output_path = MERGED_DATA_DIR / merge_label / "edges.tsv"
+            merged_nodes_output_path = MERGED_DATA_DIR / merge_label / f"merged-kg_nodes.tsv"
+            merged_edges_output_path = MERGED_DATA_DIR / merge_label / f"merged-kg_edges.tsv"
         else:
-            merged_nodes_output_path = MERGED_DATA_DIR / "nodes.tsv"
-            merged_edges_output_path = MERGED_DATA_DIR / "edges.tsv"
+            merged_nodes_output_path = MERGED_DATA_DIR / "merged-kg_nodes.tsv"
+            merged_edges_output_path = MERGED_DATA_DIR / "merged-kg_edges.tsv"
 
         duckdb_merge(
             node_paths,

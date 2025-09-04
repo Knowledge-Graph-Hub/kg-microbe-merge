@@ -21,11 +21,11 @@ kg-microbe-function-cat:
 	cd ../../merged && \
 	mkdir -p kg-microbe-function && \
 	cd kg-microbe-core && \
-	tail -n +2 edges.tsv > edges_data.tsv && \
-	head -1 edges.tsv > edges_header.tsv && \
+	tail -n +2 merged-kg_edges.tsv > edges_data.tsv && \
+	head -1 merged-kg_edges.tsv > edges_header.tsv && \
 	cd ../ && \
 	cd kg-microbe-function && \
-	cat ../kg-microbe-core/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
+	cat ../kg-microbe-core/merged-kg_nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
 	cat ../kg-microbe-core/edges_header.tsv ../kg-microbe-core/edges_data.tsv ../../raw/uniprot_functional_microbes/edges_data_clean.tsv > merged-kg_edges.tsv && \
 	cd ../../../ && \
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py kg-microbe-function && \
@@ -43,12 +43,12 @@ kg-microbe-biomedical-function-cat:
 	head -1 edges.tsv | cut -f1,2,3 > edges_header_clean.tsv && \
 	cd ../../merged && \
 	cd kg-microbe-biomedical && \
-	tail -n +2 edges.tsv > edges_data.tsv && \
-	head -1 edges.tsv > edges_header.tsv && \
+	tail -n +2 merged-kg_edges.tsv > edges_data.tsv && \
+	head -1 merged-kg_edges.tsv > edges_header.tsv && \
 	cd ../ && \
 	mkdir -p kg-microbe-biomedical-function && \
 	cd kg-microbe-biomedical-function && \
-	cat ../kg-microbe-biomedical/nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
+	cat ../kg-microbe-biomedical/merged-kg_nodes.tsv ../../raw/uniprot_functional_microbes/nodes_UniprotKB.tsv > merged-kg_nodes.tsv && \
 	cat ../kg-microbe-biomedical/edges_header.tsv ../kg-microbe-biomedical/edges_data.tsv ../../raw/uniprot_functional_microbes/edges_data_clean.tsv > merged-kg_edges.tsv && \
 	cd ../../../ && \
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py kg-microbe-biomedical-function && \
