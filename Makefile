@@ -4,45 +4,45 @@ datamodel:
 kg-microbe-core: datamodel
 	poetry run kg merge -m duckdb -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa" --merge-label $@
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py $@
-	@# If missing nodes were found, add them to the nodes file
+	@# If missing nodes were found, add them to the nodes file (keep _missing_nodes_with_category.tsv for reference)
 	@if [ -f data/merged/$@/$@_missing_nodes_with_category.tsv ]; then \
 		cd data/merged/$@ && \
 		mv merged-kg_nodes.tsv merged-kg_nodes_part.tsv && \
 		cat merged-kg_nodes_part.tsv $@_missing_nodes_with_category.tsv > merged-kg_nodes.tsv && \
-		rm $@_missing_nodes.tsv $@_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
+		rm $@_missing_nodes.tsv merged-kg_nodes_part.tsv; \
 	fi
 
 kg-microbe-function: datamodel
 	poetry run kg merge -m duckdb -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, uniprot_functional_microbes" --merge-label $@
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py $@
-	@# If missing nodes were found, add them to the nodes file
+	@# If missing nodes were found, add them to the nodes file (keep _missing_nodes_with_category.tsv for reference)
 	@if [ -f data/merged/$@/$@_missing_nodes_with_category.tsv ]; then \
 		cd data/merged/$@ && \
 		mv merged-kg_nodes.tsv merged-kg_nodes_part.tsv && \
 		cat merged-kg_nodes_part.tsv $@_missing_nodes_with_category.tsv > merged-kg_nodes.tsv && \
-		rm $@_missing_nodes.tsv $@_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
+		rm $@_missing_nodes.tsv merged-kg_nodes_part.tsv; \
 	fi
 
 kg-microbe-biomedical: datamodel
 	poetry run kg merge -m duckdb -s "bacdive, mediadive, madin_etal, rhea_mappings, bactotraits, chebi, ec, envo, go, ncbitaxon, upa, hp, mondo, disbiome, ctd, wallen_etal, uniprot_human" --merge-label $@
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py $@
-	@# If missing nodes were found, add them to the nodes file
+	@# If missing nodes were found, add them to the nodes file (keep _missing_nodes_with_category.tsv for reference)
 	@if [ -f data/merged/$@/$@_missing_nodes_with_category.tsv ]; then \
 		cd data/merged/$@ && \
 		mv merged-kg_nodes.tsv merged-kg_nodes_part.tsv && \
 		cat merged-kg_nodes_part.tsv $@_missing_nodes_with_category.tsv > merged-kg_nodes.tsv && \
-		rm $@_missing_nodes.tsv $@_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
+		rm $@_missing_nodes.tsv merged-kg_nodes_part.tsv; \
 	fi
 
 kg-microbe-biomedical-function: datamodel
 	poetry run kg merge -m duckdb --merge-label $@
 	poetry run python kg_microbe_merge/utils/edge_vs_node_check.py $@
-	@# If missing nodes were found, add them to the nodes file
+	@# If missing nodes were found, add them to the nodes file (keep _missing_nodes_with_category.tsv for reference)
 	@if [ -f data/merged/$@/$@_missing_nodes_with_category.tsv ]; then \
 		cd data/merged/$@ && \
 		mv merged-kg_nodes.tsv merged-kg_nodes_part.tsv && \
 		cat merged-kg_nodes_part.tsv $@_missing_nodes_with_category.tsv > merged-kg_nodes.tsv && \
-		rm $@_missing_nodes.tsv $@_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
+		rm $@_missing_nodes.tsv merged-kg_nodes_part.tsv; \
 	fi
 
 kg-microbe-function-cat:
