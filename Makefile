@@ -45,7 +45,12 @@ kg-microbe-biomedical-function: datamodel
 		rm $@_missing_nodes.tsv $@_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
 	fi
 
-kg-microbe-function-cat: kg-microbe-core
+kg-microbe-function-cat:
+	@# Check that kg-microbe-core exists
+	@if [ ! -f data/merged/kg-microbe-core/merged-kg_nodes.tsv ]; then \
+		echo "Error: kg-microbe-core must be built first. Run 'make kg-microbe-core' first."; \
+		exit 1; \
+	fi
 	cd data/raw/uniprot_functional_microbes && \
 	grep UniprotKB: nodes.tsv > nodes_UniprotKB.tsv && \
 	tail -n +2 edges.tsv | cut -f1,2,3 > edges_data_clean.tsv && \
@@ -68,7 +73,12 @@ kg-microbe-function-cat: kg-microbe-core
 		rm kg-microbe-function-cat_missing_nodes.tsv kg-microbe-function-cat_missing_nodes_with_category.tsv merged-kg_nodes_part.tsv; \
 	fi
 
-kg-microbe-biomedical-function-cat: kg-microbe-biomedical
+kg-microbe-biomedical-function-cat:
+	@# Check that kg-microbe-biomedical exists
+	@if [ ! -f data/merged/kg-microbe-biomedical/merged-kg_nodes.tsv ]; then \
+		echo "Error: kg-microbe-biomedical must be built first. Run 'make kg-microbe-biomedical' first."; \
+		exit 1; \
+	fi
 	cd data/raw/uniprot_functional_microbes && \
 	grep UniprotKB: nodes.tsv > nodes_UniprotKB.tsv && \
 	tail -n +2 edges.tsv | cut -f1,2,3 > edges_data_clean.tsv && \
@@ -94,7 +104,7 @@ kg-microbe-biomedical-function-cat: kg-microbe-biomedical
 clean:
 	# Remove generated datamodel
 	rm -f kg_microbe_merge/schema/merge_datamodel.py
-	
+
 	# Remove all merged directories
 	rm -rf data/merged/kg-microbe-core
 	rm -rf data/merged/kg-microbe-function
@@ -102,16 +112,16 @@ clean:
 	rm -rf data/merged/kg-microbe-biomedical
 	rm -rf data/merged/kg-microbe-biomedical-function
 	rm -rf data/merged/kg-microbe-biomedical-function-cat
-	
+
 	# Remove temporary files created during concatenation
 	rm -f data/raw/uniprot_functional_microbes/nodes_UniprotKB.tsv
 	rm -f data/raw/uniprot_functional_microbes/edges_data_clean.tsv
 	rm -f data/raw/uniprot_functional_microbes/edges_header_clean.tsv
-	
+
 	# Remove any edge_data and edge_header files in merged directories
 	find data/merged -name "edges_data.tsv" -type f -delete 2>/dev/null || true
 	find data/merged -name "edges_header.tsv" -type f -delete 2>/dev/null || true
-	
+
 	@echo "Cleaned all generated files"
 
 include kg-microbe-merge.Makefile
